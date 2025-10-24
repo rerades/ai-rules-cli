@@ -4,7 +4,7 @@
   "description": "CLI for managing Cursor AI rules with dependency resolution and conflict detection",
   "main": "dist/index.js",
   "bin": {
-    "ai-rules": "dist/index.js"
+    "ai-rules": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",
@@ -13,7 +13,11 @@
     "test": "vitest",
     "test:watch": "vitest --watch",
     "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix"
+    "lint:fix": "eslint src --ext .ts --fix",
+    "prepublishOnly": "npm run build",
+    "prepack": "npm run build",
+    "publish:script": "./scripts/publish.sh",
+    "prepublish": "npm run build && chmod +x dist/index.js"
   },
   "keywords": [
     "cursor",
@@ -50,5 +54,18 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rerades/ai-rules-cli.git"
+  },
+  "homepage": "https://github.com/rerades/ai-rules-cli#readme",
+  "bugs": {
+    "url": "https://github.com/rerades/ai-rules-cli/issues"
   }
 }

@@ -14,14 +14,26 @@ A professional CLI tool for managing Cursor AI rules with dependency resolution 
 
 ## Installation
 
+### Global Installation
+
 ```bash
 npm install -g ai-rules-cli
 ```
 
-Or use with npx:
+### Using npx (Recommended)
 
 ```bash
 npx ai-rules-cli init
+```
+
+### Local Development
+
+```bash
+git clone https://github.com/rerades/ai-rules-cli.git
+cd ai-rules-cli
+npm install
+npm run build
+npm link
 ```
 
 ## Usage
