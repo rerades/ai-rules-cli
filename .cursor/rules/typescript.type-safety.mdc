@@ -1,0 +1,426 @@
+---
+id: typescript.type-safety.guidelines
+version: 1.0.0
+title: "TypeScript Type Safety Guidelines"
+summary: "Core type safety and strictness rules including strict mode, any usage, readonly properties, and indexed access patterns."
+category: typescript
+scope: ["global", "repo", "package", "workspace", "app", "component"]
+language: "typescript"
+frameworks: ["typescript"]
+tooling: ["typescript", "tsc"]
+lifecycle: "enforced"
+maturity: "stable"
+stability: "locked"
+audience: ["frontend", "backend", "fullstack"]
+severity: "high"
+requires: []
+conflicts: []
+supersedes: []
+bundles: ["typescript/type-safety", "typescript/quality"]
+files: ["**/*.ts", "**/*.tsx", "**/*.astro"]
+enforcement: { lint: "error", ci: "block", scaffold: "none" }
+order: 10
+inputs:
+  enforceStrictMode:
+    {
+      type: "boolean",
+      default: true,
+      description: "Enforce TypeScript strict mode",
+    }
+  allowAnyInGenerics:
+    {
+      type: "boolean",
+      default: true,
+      description: "Allow any type in generic function bodies",
+    }
+  enforceReadonly:
+    {
+      type: "boolean",
+      default: true,
+      description: "Enforce readonly properties by default",
+    }
+tags:
+  [
+    "topic:typescript",
+    "topic:type-safety",
+    "topic:strict-mode",
+    "topic:quality",
+  ]
+owner: "typescript@tu-org.com"
+review: { lastReviewed: "2025-01-20", reviewCycleDays: 90 }
+license: "MIT"
+links:
+  - { rel: "docs", href: "https://www.typescriptlang.org/tsconfig" }
+  - {
+      rel: "docs",
+      href: "https://www.typescriptlang.org/docs/handbook/intro.html",
+    }
+---
+
+# TypeScript Type Safety Guidelines
+
+You are an expert TypeScript developer focused on writing type-safe, maintainable code.
+
+## Core Principle
+
+**Type safety prevents runtime errors**. Every type annotation, strict mode setting, and readonly modifier serves to catch bugs at compile time rather than at runtime.
+
+## 1. TypeScript Strict Mode
+
+### ✅ Rule: Always Enable Strict Mode
+
+All TypeScript projects **must** use strict mode in `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "strict": true
+  }
+}
+```
+
+This enables:
+
+- `noImplicitAny`: Catch implicit any types
+- `strictNullChecks`: Handle null/undefined explicitly
+- `strictFunctionTypes`: Ensure function parameter compatibility
+- `strictBindCallApply`: Type-check bind, call, apply
+- `strictPropertyInitialization`: Ensure class properties are initialized
+- `noImplicitThis`: Require explicit this types
+- `alwaysStrict`: Use strict mode in generated JavaScript
+
+### Why Strict Mode Matters
+
+```typescript
+// ❌ Without strict mode, this compiles but fails at runtime
+function getLength(value) {
+  // value is implicitly 'any'
+  return value.length;
+}
+getLength(123); // Runtime error!
+
+// ✅ With strict mode, caught at compile time
+function getLength(value: string) {
+  return value.length;
+}
+// getLength(123); // Compile error: Argument of type 'number' is not assignable
+```
+
+## 2. The `any` Type
+
+### ✅ Rule: Never Use `any` (With One Exception)
+
+The `any` type defeats TypeScript's purpose and should be avoided everywhere.
+
+```typescript
+// ❌ Bad: Using any
+function processData(data: any) {
+  return data.value.toString(); // No type safety!
+}
+
+// ✅ Good: Use proper types
+function processData(data: { value: string | number }) {
+  return data.value.toString();
+}
+
+// ✅ Good: Use unknown for truly unknown types
+function processData(data: unknown) {
+  if (typeof data === "object" && data !== null && "value" in data) {
+    return String((data as { value: unknown }).value);
+  }
+  throw new Error("Invalid data");
+}
+```
+
+### Exception: Generic Functions
+
+**The only acceptable use of `any`** is inside generic function bodies where TypeScript cannot match your runtime logic to type-level logic:
+
+```typescript
+// ✅ Acceptable: any inside generic function body
+const youSayGoodbyeISayHello = <TInput extends "hello" | "goodbye">(
+  input: TInput
+): TInput extends "hello" ? "goodbye" : "hello" => {
+  if (input === "goodbye") {
+    return "hello" as any;
+  } else {
+    return "goodbye" as any;
+  }
+};
+
+// Type system works correctly at call site
+const result1 = youSayGoodbyeISayHello("hello"); // type: "goodbye"
+const result2 = youSayGoodbyeISayHello("goodbye"); // type: "hello"
+```
+
+### Why This Exception Exists
+
+TypeScript's type system operates at compile time and cannot validate complex conditional return types that depend on runtime values within generic functions. The `as any` cast tells TypeScript "trust me, the runtime logic matches the type-level logic."
+
+**Important**: This exception applies **only** to:
+
+- Generic function bodies
+- Where conditional types are used in return types
+- Where the logic is proven correct but TypeScript cannot infer it
+
+## 3. Indexed Access Safety
+
+### ✅ Rule: Handle Indexed Access as Potentially Undefined
+
+If your project has `noUncheckedIndexedAccess: true` in `tsconfig.json`, indexing into objects and arrays returns potentially undefined values:
+
+```typescript
+// With noUncheckedIndexedAccess: true
+
+const obj: Record<string, string> = {};
+const value = obj.key; // type: string | undefined
+
+const arr: string[] = ["a", "b", "c"];
+const item = arr[0]; // type: string | undefined
+```
+
+### Best Practices
+
+```typescript
+// ❌ Bad: Assuming index exists
+const obj: Record<string, string> = getData();
+const name = obj.name.toUpperCase(); // Potential runtime error!
+
+// ✅ Good: Check before use
+const obj: Record<string, string> = getData();
+const name = obj.name?.toUpperCase() ?? "UNKNOWN";
+
+// ✅ Good: Use optional chaining
+const arr: string[] = getArray();
+const first = arr[0]?.trim() ?? "";
+
+// ✅ Good: Type guard
+function hasKey<K extends string>(
+  obj: Record<string, unknown>,
+  key: K
+): obj is Record<K, unknown> & typeof obj {
+  return key in obj;
+}
+
+const obj: Record<string, string> = getData();
+if (hasKey(obj, "name")) {
+  console.log(obj.name); // type: string (not undefined)
+}
+```
+
+### When to Enable `noUncheckedIndexedAccess`
+
+Enable this option if:
+
+- Your codebase frequently accesses dynamic object properties
+- You want maximum safety for array access
+- You can handle the verbosity of explicit undefined checks
+
+## 4. Readonly Properties
+
+### ✅ Rule: Use `readonly` by Default
+
+Properties should be `readonly` unless they genuinely need to be mutable. This prevents accidental mutations and makes code easier to reason about.
+
+```typescript
+// ❌ Bad: Mutable properties
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
+const user: User = {
+  id: "1",
+  name: "John",
+  email: "john@example.com",
+};
+
+user.id = "2"; // Accidental mutation!
+
+// ✅ Good: Readonly properties
+interface User {
+  readonly id: string;
+  readonly name: string;
+  readonly email: string;
+}
+
+const user: User = {
+  id: "1",
+  name: "John",
+  email: "john@example.com",
+};
+
+// user.id = "2"; // Compile error: Cannot assign to 'id' because it is a read-only property
+```
+
+### When to Omit `readonly`
+
+Only omit `readonly` when the property is genuinely mutable:
+
+```typescript
+// ✅ Acceptable: Genuinely mutable state
+interface FormState {
+  readonly id: string; // Never changes
+  value: string; // Changes as user types
+  isDirty: boolean; // Changes based on user interaction
+}
+```
+
+### Readonly Arrays and Objects
+
+```typescript
+// ❌ Bad: Mutable arrays
+function processItems(items: string[]) {
+  items.push("new"); // Mutates input!
+  return items;
+}
+
+// ✅ Good: Readonly arrays
+function processItems(items: readonly string[]): string[] {
+  return [...items, "new"]; // Creates new array
+}
+
+// ✅ Good: Readonly objects
+interface Config {
+  readonly settings: {
+    readonly apiUrl: string;
+    readonly timeout: number;
+  };
+}
+```
+
+### Using `Readonly<T>` Utility Type
+
+```typescript
+// ✅ Make all properties readonly
+interface User {
+  id: string;
+  name: string;
+}
+
+type ReadonlyUser = Readonly<User>;
+// Equivalent to:
+// {
+//   readonly id: string;
+//   readonly name: string;
+// }
+
+// ✅ Deep readonly for nested objects
+type DeepReadonly<T> = {
+  readonly [P in keyof T]: T[P] extends object ? DeepReadonly<T[P]> : T[P];
+};
+```
+
+## 5. Type Annotations Best Practices
+
+### Explicit vs. Inferred Types
+
+```typescript
+// ✅ Good: Let TypeScript infer simple types
+const count = 5; // inferred as number
+const name = "John"; // inferred as string
+const items = [1, 2, 3]; // inferred as number[]
+
+// ✅ Good: Explicit types for function parameters and return values
+function calculateTotal(price: number, tax: number): number {
+  return price + price * tax;
+}
+
+// ✅ Good: Explicit types for complex structures
+const config: {
+  readonly apiUrl: string;
+  readonly retries: number;
+  readonly timeout: number;
+} = {
+  apiUrl: "https://api.example.com",
+  retries: 3,
+  timeout: 5000,
+};
+```
+
+## 6. Type Narrowing
+
+### Use Type Guards Effectively
+
+```typescript
+// ✅ Good: Type guards for narrowing
+function processValue(value: string | number) {
+  if (typeof value === "string") {
+    return value.toUpperCase(); // TypeScript knows value is string
+  }
+  return value * 2; // TypeScript knows value is number
+}
+
+// ✅ Good: Custom type guard
+function isString(value: unknown): value is string {
+  return typeof value === "string";
+}
+
+function processUnknown(value: unknown) {
+  if (isString(value)) {
+    return value.toUpperCase(); // TypeScript knows value is string
+  }
+  throw new Error("Value must be a string");
+}
+```
+
+## Summary
+
+1. **Always enable strict mode** - No exceptions
+2. **Never use `any`** - Except inside generic function bodies where TypeScript cannot infer conditional types
+3. **Handle indexed access safely** - Use optional chaining and nullish coalescing
+4. **Use `readonly` by default** - Only make properties mutable when necessary
+5. **Prefer explicit types** - For function signatures and complex structures
+6. **Use type guards** - To narrow types safely
+
+## Common Anti-patterns
+
+### ❌ Disabling Strict Checks
+
+```typescript
+// ❌ Never do this
+// @ts-ignore
+const value = someUnsafeOperation();
+
+// @ts-expect-error
+const result = value.nonExistentProperty;
+```
+
+### ❌ Using `any` to "Fix" Type Errors
+
+```typescript
+// ❌ Bad: Hiding type errors with any
+function processData(data: any) {
+  return data.value.nested.property;
+}
+
+// ✅ Good: Define proper types
+interface Data {
+  value: {
+    nested: {
+      property: string;
+    };
+  };
+}
+
+function processData(data: Data) {
+  return data.value.nested.property;
+}
+```
+
+### ❌ Forgetting Optional Chaining
+
+```typescript
+// ❌ Bad: Assuming properties exist
+const user = getUser();
+const street = user.address.street; // May crash!
+
+// ✅ Good: Use optional chaining
+const user = getUser();
+const street = user?.address?.street ?? "Unknown";
+```
+
+## Remember
+
+Type safety is not just about making TypeScript happy - it's about preventing bugs, improving code maintainability, and documenting your code's behavior through types.

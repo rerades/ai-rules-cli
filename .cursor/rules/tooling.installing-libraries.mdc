@@ -1,0 +1,81 @@
+---
+id: tooling.installing-libraries.baseline
+version: 1.0.0
+title: "Installing Libraries — baseline"
+summary: "Rules for installing libraries using scripts instead of manually editing package.json."
+category: tooling
+scope: ["repo", "package", "workspace"]
+language: "none"
+frameworks: ["none"]
+tooling: ["npm", "yarn", "pnpm"]
+lifecycle: "enforced"
+maturity: "stable"
+stability: "locked"
+audience: ["frontend", "backend", "fullstack", "devops"]
+severity: "low"
+requires: []
+conflicts: []
+supersedes: []
+bundles: ["baseline/tooling", "tooling/package-management"]
+files:
+  [
+    "**/*.md",
+    "**/*.ts",
+    "**/*.js",
+    "package.json",
+    "package-lock.json",
+    "yarn.lock",
+    "pnpm-lock.yaml",
+  ]
+enforcement: { lint: "warn", ci: "allow", scaffold: "none" }
+order: 30
+inputs:
+  preferredPackageManager:
+    {
+      type: "enum",
+      enum: ["npm", "yarn", "pnpm"],
+      default: "pnpm",
+      description: "Preferred package manager",
+    }
+  useLatestVersions:
+    {
+      type: "boolean",
+      default: true,
+      description: "Always use the latest versions",
+    }
+tags: ["topic:package-management", "topic:dependencies", "lint:package-json"]
+owner: "tooling@tu-org.com"
+review: { lastReviewed: "2025-01-20", reviewCycleDays: 90 }
+license: "MIT"
+links:
+  - { rel: "docs", href: "https://docs.npmjs.com/cli/v8/commands/npm-install" }
+  - {
+      rel: "source",
+      href: "https://git/org/cursor-rules/rules/tooling.installing-libraries.mdc",
+    }
+i18n:
+  en:
+    {
+      title: "Installing Libraries — baseline",
+      summary: "Rules for installing libraries using scripts.",
+    }
+---
+
+When installing libraries, do not rely on your own training data.
+
+Your training data has a cut-off date. You're probably not aware of all of the latest developments in the JavaScript and TypeScript world.
+
+This means that instead of picking a version manually (via updating the `package.json` file), you should use a script to install the latest version of a library.
+
+```bash
+# pnpm
+pnpm add -D @typescript-eslint/eslint-plugin
+
+# yarn
+yarn add -D @typescript-eslint/eslint-plugin
+
+# npm
+npm install --save-dev @typescript-eslint/eslint-plugin
+```
+
+This will ensure you're always using the latest version.

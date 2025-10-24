@@ -1,0 +1,733 @@
+---
+id: typescript.error-handling.guidelines
+version: 1.0.0
+title: "TypeScript Error Handling Guidelines"
+summary: "Unified error handling approach using Result types, discriminated unions, and functional patterns for TypeScript projects."
+category: typescript
+scope: ["global", "repo", "package", "workspace", "app", "component"]
+language: "typescript"
+frameworks: ["typescript"]
+tooling: ["typescript"]
+lifecycle: "enforced"
+maturity: "stable"
+stability: "locked"
+audience: ["frontend", "backend", "fullstack"]
+severity: "medium"
+requires: ["typescript.type-safety", "typescript.patterns"]
+conflicts: []
+supersedes: []
+bundles: ["typescript/error-handling", "typescript/patterns"]
+files: ["**/*.ts", "**/*.tsx", "**/*.astro"]
+enforcement: { lint: "warn", ci: "allow", scaffold: "none" }
+order: 25
+inputs:
+  preferResultTypes:
+    {
+      type: "boolean",
+      default: true,
+      description: "Prefer Result types over throwing errors",
+    }
+  useFunctionalADTs:
+    {
+      type: "boolean",
+      default: false,
+      description: "Use functional ADTs (Either, Maybe) from libraries like crocks",
+    }
+tags:
+  [
+    "topic:typescript",
+    "topic:error-handling",
+    "topic:result-types",
+    "topic:functional",
+  ]
+owner: "typescript@tu-org.com"
+review: { lastReviewed: "2025-01-20", reviewCycleDays: 90 }
+license: "MIT"
+links:
+  - {
+      rel: "related",
+      href: "rules/code.functional-approach.mdx",
+      description: "For advanced functional programming patterns with ADTs",
+    }
+  - {
+      rel: "docs",
+      href: "https://www.typescriptlang.org/docs/handbook/2/narrowing.html",
+    }
+---
+
+# TypeScript Error Handling Guidelines
+
+You are an expert TypeScript developer who uses type-safe error handling patterns to write reliable, maintainable code.
+
+## Core Principle
+
+**Make errors explicit and type-safe**. Instead of throwing exceptions that can be forgotten, use Result types that force callers to handle both success and error cases.
+
+## Philosophy: When to Throw vs Return Errors
+
+### When to Throw Errors
+
+Throw errors when:
+
+1. **Framework expects it**: Express middleware, React Error Boundaries
+2. **Truly exceptional**: Out of memory, programmer errors, assertion failures
+3. **Top-level handlers exist**: Your framework will catch and handle them
+
+```typescript
+// ✅ Good: Throwing in framework handler
+app.post("/api/users", async (req, res) => {
+  // Framework will catch this and return 500
+  if (!req.body.email) {
+    throw new Error("Email is required");
+  }
+  // ...
+});
+
+// ✅ Good: Throwing for assertion failures
+function divide(a: number, b: number): number {
+  if (b === 0) {
+    throw new Error("Division by zero"); // Programmer error
+  }
+  return a / b;
+}
+```
+
+### When to Use Result Types
+
+Use Result types when:
+
+1. **Errors are expected**: Parsing, validation, external API calls
+2. **Manual try-catch needed**: Without Result types, caller needs try-catch
+3. **Multiple error types**: Want to distinguish different failure modes
+4. **Functional codebase**: Already using functional programming patterns
+
+```typescript
+// ✅ Good: Result type for expected failures
+function parseJSON(input: string): Result<unknown, Error> {
+  // Parsing can fail - this is expected
+  try {
+    return { ok: true, value: JSON.parse(input) };
+  } catch (error) {
+    return { ok: false, error: error as Error };
+  }
+}
+
+// Caller is forced to handle both cases
+const result = parseJSON(data);
+if (result.ok) {
+  console.log(result.value);
+} else {
+  console.error(result.error);
+}
+```
+
+## 1. Simple Result Type Pattern
+
+### Basic Result Type
+
+```typescript
+// ✅ Define a generic Result type
+type Result<TValue, TError = Error> =
+  | { ok: true; value: TValue }
+  | { ok: false; error: TError };
+```
+
+### Usage Example: JSON Parsing
+
+```typescript
+// ✅ Good: JSON parsing with Result type
+function parseJSON(input: string): Result<unknown, Error> {
+  try {
+    return { ok: true, value: JSON.parse(input) };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error : new Error(String(error)),
+    };
+  }
+}
+
+// Type-safe handling
+const result = parseJSON('{"name": "John"}');
+if (result.ok) {
+  console.log(result.value); // TypeScript knows value exists
+} else {
+  console.error(result.error.message); // TypeScript knows error exists
+}
+```
+
+### Pattern: API Calls
+
+```typescript
+// ✅ Define specific error types
+type ApiError =
+  | { type: "network"; message: string }
+  | { type: "validation"; field: string; message: string }
+  | { type: "unauthorized"; message: string }
+  | { type: "not_found"; resourceId: string };
+
+type ApiResult<TData> = Result<TData, ApiError>;
+
+// ✅ API function with Result type
+async function fetchUser(id: string): Promise<ApiResult<User>> {
+  try {
+    const response = await fetch(`/api/users/${id}`);
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return {
+          ok: false,
+          error: { type: "not_found", resourceId: id },
+        };
+      }
+      if (response.status === 401) {
+        return {
+          ok: false,
+          error: { type: "unauthorized", message: "Not authenticated" },
+        };
+      }
+      return {
+        ok: false,
+        error: { type: "network", message: response.statusText },
+      };
+    }
+
+    const data = await response.json();
+    return { ok: true, value: data };
+  } catch (error) {
+    return {
+      ok: false,
+      error: {
+        type: "network",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+    };
+  }
+}
+
+// Type-safe error handling with pattern matching
+const result = await fetchUser("123");
+if (!result.ok) {
+  switch (result.error.type) {
+    case "not_found":
+      console.error(`User ${result.error.resourceId} not found`);
+      break;
+    case "unauthorized":
+      console.error("Please login");
+      break;
+    case "network":
+      console.error(`Network error: ${result.error.message}`);
+      break;
+    case "validation":
+      console.error(`Validation error on ${result.error.field}`);
+      break;
+  }
+  return;
+}
+
+// TypeScript knows result.value is User
+console.log(result.value.name);
+```
+
+## 2. Validation with Result Types
+
+### Form Validation
+
+```typescript
+// ✅ Validation error type
+type ValidationError = {
+  field: string;
+  message: string;
+};
+
+type ValidationResult<TData> = Result<TData, ValidationError[]>;
+
+// ✅ Validation function
+function validateUser(data: unknown): ValidationResult<User> {
+  const errors: ValidationError[] = [];
+
+  if (typeof data !== "object" || data === null) {
+    return {
+      ok: false,
+      errors: [{ field: "root", message: "Data must be an object" }],
+    };
+  }
+
+  const obj = data as Record<string, unknown>;
+
+  if (typeof obj.email !== "string" || !obj.email.includes("@")) {
+    errors.push({ field: "email", message: "Invalid email address" });
+  }
+
+  if (typeof obj.name !== "string" || obj.name.length < 2) {
+    errors.push({
+      field: "name",
+      message: "Name must be at least 2 characters",
+    });
+  }
+
+  if (errors.length > 0) {
+    return { ok: false, error: errors };
+  }
+
+  return {
+    ok: true,
+    value: {
+      email: obj.email as string,
+      name: obj.name as string,
+      id: obj.id as string,
+    },
+  };
+}
+
+// Usage
+const result = validateUser(formData);
+if (!result.ok) {
+  // Show validation errors to user
+  result.error.forEach((err) => {
+    showError(err.field, err.message);
+  });
+  return;
+}
+
+// TypeScript knows result.value is User
+await saveUser(result.value);
+```
+
+## 3. Utility Functions for Result Types
+
+### Helper Functions
+
+```typescript
+// ✅ Utility to transform Result values
+function mapResult<TValue, TError, TNewValue>(
+  result: Result<TValue, TError>,
+  fn: (value: TValue) => TNewValue
+): Result<TNewValue, TError> {
+  if (result.ok) {
+    return { ok: true, value: fn(result.value) };
+  }
+  return result;
+}
+
+// ✅ Utility to chain Result operations
+function chainResult<TValue, TError, TNewValue>(
+  result: Result<TValue, TError>,
+  fn: (value: TValue) => Result<TNewValue, TError>
+): Result<TNewValue, TError> {
+  if (result.ok) {
+    return fn(result.value);
+  }
+  return result;
+}
+
+// ✅ Utility to get value or default
+function getOrElse<TValue, TError>(
+  result: Result<TValue, TError>,
+  defaultValue: TValue
+): TValue {
+  return result.ok ? result.value : defaultValue;
+}
+
+// Usage
+const jsonResult = parseJSON('{"age": "25"}');
+const ageResult = mapResult(jsonResult, (data: any) => data.age);
+const age = getOrElse(ageResult, 0);
+```
+
+### Combining Multiple Results
+
+```typescript
+// ✅ Utility to combine multiple Results
+function combineResults<TValue, TError>(
+  results: Result<TValue, TError>[]
+): Result<TValue[], TError> {
+  const values: TValue[] = [];
+
+  for (const result of results) {
+    if (!result.ok) {
+      return result;
+    }
+    values.push(result.value);
+  }
+
+  return { ok: true, value: values };
+}
+
+// Usage
+const results = await Promise.all([
+  fetchUser("1"),
+  fetchUser("2"),
+  fetchUser("3"),
+]);
+
+const combined = combineResults(results);
+if (!combined.ok) {
+  console.error("Failed to fetch users:", combined.error);
+  return;
+}
+
+// TypeScript knows combined.value is User[]
+console.log(`Fetched ${combined.value.length} users`);
+```
+
+## 4. Bridge to Functional Programming
+
+This section clarifies when to use **simple Result types** vs **functional ADTs** and when to avoid each approach.
+
+### Decision Matrix: Result Types vs Functional ADTs
+
+| Scenario                     | Use Simple Result Types            | Use Functional ADTs                      | Avoid Both                             |
+| ---------------------------- | ---------------------------------- | ---------------------------------------- | -------------------------------------- |
+| **Team Experience**          | Team new to functional programming | Team comfortable with FP                 | Team strongly prefers imperative style |
+| **Project Complexity**       | Simple to medium complexity        | Complex data pipelines                   | Very simple CRUD operations            |
+| **Error Handling Needs**     | Basic success/failure              | Advanced composition, monadic operations | Simple try-catch sufficient            |
+| **Performance Requirements** | Standard performance needs         | Can handle slight overhead               | Critical performance constraints       |
+| **Codebase Style**           | Mixed imperative/functional        | Predominantly functional                 | Purely imperative                      |
+
+### When to Use Simple Result Types
+
+**✅ Use simple Result types when:**
+
+1. **Team is learning functional concepts** - Start with simple patterns
+2. **Mixed codebase** - Some functional, some imperative code
+3. **Simple error handling** - Just need success/failure distinction
+4. **Performance critical** - Minimal overhead required
+5. **Small to medium projects** - Don't need complex composition
+
+```typescript
+// ✅ Good: Simple Result type for straightforward cases
+type Result<T, E> = { ok: true; value: T } | { ok: false; error: E };
+
+function parseUser(data: string): Result<User, string> {
+  try {
+    return { ok: true, value: JSON.parse(data) };
+  } catch {
+    return { ok: false, error: "Invalid JSON" };
+  }
+}
+
+// Simple usage - no complex composition needed
+const result = parseUser(jsonData);
+if (result.ok) {
+  console.log(result.value.name);
+} else {
+  console.error(result.error);
+}
+```
+
+### When to Use Functional ADTs
+
+**✅ Use functional ADTs when:**
+
+1. **Team is experienced with FP** - Comfortable with monads and functors
+2. **Complex data pipelines** - Need advanced composition patterns
+3. **Standardized error handling** - Want battle-tested implementations
+4. **Functional codebase** - Already using functional programming extensively
+5. **Advanced error recovery** - Need sophisticated error handling strategies
+
+```typescript
+// ✅ Good: Functional ADTs for complex scenarios
+import { Either, Maybe, Result } from "crocks";
+
+// Complex pipeline with multiple error types
+const processUserData = (rawData: string): Result<User> =>
+  Result.try(() => JSON.parse(rawData))
+    .chain((data) => validateUser(data))
+    .chain((user) => enrichUserData(user))
+    .mapRej((error) => `Processing failed: ${error.message}`);
+
+// Advanced composition
+const getUserWithPosts = (userId: string): Result<UserWithPosts> =>
+  Result.of(userId)
+    .chain(fetchUser)
+    .chain((user) =>
+      fetchUserPosts(user.id).map((posts) => ({ ...user, posts }))
+    );
+```
+
+### When NOT to Use Result Types
+
+**❌ Avoid Result types when:**
+
+1. **Framework integration** - Express, React Error Boundaries expect thrown errors
+2. **Truly exceptional cases** - Out of memory, programmer errors
+3. **Performance critical paths** - Every nanosecond matters
+4. **Simple CRUD operations** - Basic database operations don't need complex error handling
+5. **Legacy codebase** - Existing codebase uses exceptions extensively
+
+```typescript
+// ❌ Don't use Result types for framework handlers
+app.post("/api/users", async (req, res) => {
+  // Framework expects thrown errors
+  if (!req.body.email) {
+    throw new Error("Email required"); // ✅ Correct
+  }
+
+  // ❌ Wrong - framework won't handle this
+  // const result = validateUser(req.body);
+  // if (!result.ok) { ... }
+});
+
+// ❌ Don't use Result types for truly exceptional cases
+function allocateMemory(size: number): Buffer {
+  if (size > MAX_MEMORY) {
+    throw new Error("Out of memory"); // ✅ Correct - truly exceptional
+  }
+  return Buffer.alloc(size);
+}
+```
+
+### When NOT to Use Functional ADTs
+
+**❌ Avoid functional ADTs when:**
+
+1. **Team unfamiliar with FP** - Will create confusion and resistance
+2. **Simple error handling** - Overkill for basic success/failure
+3. **Performance constraints** - ADTs have slight overhead
+4. **Mixed paradigms** - Codebase mixes OOP, imperative, and functional
+5. **Small projects** - Don't need the complexity
+
+```typescript
+// ❌ Don't use ADTs for simple cases
+import { Maybe } from "crocks";
+
+// ❌ Overkill for simple validation
+const validateEmail = (email: string): Maybe<string> => {
+  return email.includes("@") ? Maybe.Just(email) : Maybe.Nothing();
+};
+
+// ✅ Better: Simple boolean or Result type
+const validateEmail = (email: string): boolean => {
+  return email.includes("@");
+};
+
+// Or simple Result type
+const validateEmail = (email: string): Result<string, string> => {
+  return email.includes("@")
+    ? { ok: true, value: email }
+    : { ok: false, error: "Invalid email" };
+};
+```
+
+### Migration Strategy
+
+**From Simple Result Types to Functional ADTs:**
+
+```typescript
+// Step 1: Start with simple Result types
+type SimpleResult<T, E> = { ok: true; value: T } | { ok: false; error: E };
+
+// Step 2: Add utility functions
+function mapResult<T, E, U>(
+  result: SimpleResult<T, E>,
+  fn: (value: T) => U
+): SimpleResult<U, E> {
+  return result.ok ? { ok: true, value: fn(result.value) } : result;
+}
+
+// Step 3: When ready, migrate to functional ADTs
+import { Result } from "crocks";
+
+// Now you can use advanced composition
+const processData = (input: string): Result<User> =>
+  Result.try(() => JSON.parse(input))
+    .chain(validateUser)
+    .chain(enrichUser);
+```
+
+### Codebase Consistency Rules
+
+**Choose ONE approach per project:**
+
+1. **Pure Result Types** - Use simple Result types throughout
+2. **Pure Functional** - Use ADTs throughout (see `code.functional-approach.mdx`)
+3. **Hybrid** - Use Result types for business logic, ADTs for complex pipelines
+
+**❌ Don't mix approaches in the same module:**
+
+```typescript
+// ❌ Bad: Mixing approaches
+function processUser(data: string) {
+  // Simple Result type
+  const parseResult = parseJSON(data);
+  if (!parseResult.ok) return parseResult;
+
+  // Functional ADT
+  const user = Maybe.Just(parseResult.value).chain(validateUser).option(null);
+
+  // Inconsistent error handling!
+}
+```
+
+### Example: crocks Library Integration
+
+```typescript
+// See code.functional-approach.mdx for full details
+
+import { Either, Maybe, Result } from "crocks";
+
+// Either: For operations that can fail with specific error types
+const parseUser = (data: string): Either<Error, User> => {
+  try {
+    const user = JSON.parse(data);
+    return Either.Right(user);
+  } catch (error) {
+    return Either.Left(error as Error);
+  }
+};
+
+// Maybe: For operations that may return nothing
+const findUser = (id: string): Maybe<User> => {
+  const user = database.findById(id);
+  return user ? Maybe.Just(user) : Maybe.Nothing();
+};
+
+// Result: For operations with side effects
+const fetchUser = (id: string): Result<User> =>
+  Result.try(() => fetch(`/api/users/${id}`))
+    .map((response) => response.json())
+    .mapRej((error) => `Failed to fetch user: ${error.message}`);
+```
+
+**Note**: For full functional programming patterns with ADTs, see the `code.functional-approach.mdx` rule.
+
+## 5. Async Error Handling
+
+### Async/Await with Result Types
+
+```typescript
+// ✅ Async function returning Result
+async function fetchAndProcessUser(
+  id: string
+): Promise<Result<ProcessedUser, ApiError>> {
+  const userResult = await fetchUser(id);
+  if (!userResult.ok) {
+    return userResult; // Propagate error
+  }
+
+  const processedResult = processUser(userResult.value);
+  return processedResult;
+}
+
+// Usage
+const result = await fetchAndProcessUser("123");
+if (!result.ok) {
+  handleError(result.error);
+  return;
+}
+
+displayUser(result.value);
+```
+
+### Promise.all with Results
+
+```typescript
+// ✅ Parallel operations with Result types
+async function fetchMultipleUsers(
+  ids: string[]
+): Promise<Result<User[], ApiError>> {
+  const results = await Promise.all(ids.map(fetchUser));
+
+  // Check if any failed
+  const failed = results.find((r) => !r.ok);
+  if (failed && !failed.ok) {
+    return failed; // Return first error
+  }
+
+  // All succeeded - extract values
+  return {
+    ok: true,
+    value: results.map((r) => (r as { ok: true; value: User }).value),
+  };
+}
+```
+
+## 6. Error Context and Stack Traces
+
+### Wrapping Errors with Context
+
+```typescript
+// ✅ Error with context
+type ContextualError = {
+  message: string;
+  context: Record<string, unknown>;
+  cause?: Error;
+};
+
+function withContext(
+  error: Error,
+  context: Record<string, unknown>
+): ContextualError {
+  return {
+    message: error.message,
+    context,
+    cause: error,
+  };
+}
+
+// Usage
+async function processUserData(
+  userId: string
+): Promise<Result<void, ContextualError>> {
+  try {
+    const user = await fetchUserOrThrow(userId);
+    await processData(user.data);
+    return { ok: true, value: undefined };
+  } catch (error) {
+    return {
+      ok: false,
+      error: withContext(error as Error, {
+        userId,
+        operation: "processUserData",
+        timestamp: new Date().toISOString(),
+      }),
+    };
+  }
+}
+```
+
+## Summary
+
+1. **Throw errors** - When framework expects it or for truly exceptional cases
+2. **Use Result types** - For expected failures, parsing, validation, API calls
+3. **Use Functional ADTs** - For complex pipelines and advanced composition
+4. **Define error types** - Use discriminated unions for different error kinds
+5. **Provide utilities** - Create helper functions for working with Results
+6. **Choose consistency** - Pick ONE approach per project, don't mix paradigms
+
+## Decision Tree
+
+```
+Is the error truly exceptional (out of memory, assertion failure)?
+├─ Yes → Throw error
+└─ No → Does your framework catch and handle thrown errors?
+   ├─ Yes → You can throw (Express, React Error Boundary)
+   └─ No → Is your team comfortable with functional programming?
+      ├─ Yes → Do you need advanced composition patterns?
+      │   ├─ Yes → Use Functional ADTs (crocks, fp-ts)
+      │   └─ No → Use simple Result types
+      └─ No → Use simple Result types
+
+For most business logic → Use Result types
+For framework integration → Follow framework conventions
+For complex functional pipelines → Use ADTs (see code.functional-approach.mdx)
+For simple CRUD operations → Consider if error handling is even needed
+```
+
+## Quick Reference
+
+| Use Case                 | Approach             | When                             |
+| ------------------------ | -------------------- | -------------------------------- |
+| **Framework handlers**   | `throw`              | Express, React Error Boundaries  |
+| **Truly exceptional**    | `throw`              | Out of memory, programmer errors |
+| **Simple validation**    | `Result<T, E>`       | Basic success/failure            |
+| **API calls**            | `Result<T, E>`       | Expected network failures        |
+| **Complex pipelines**    | `ADTs`               | Advanced composition needed      |
+| **Performance critical** | `throw` or `boolean` | Minimal overhead required        |
+| **Legacy codebase**      | `throw`              | Existing exception patterns      |
+| **Functional codebase**  | `ADTs`               | Already using FP extensively     |
+
+## Remember
+
+The goal is to make errors visible in type signatures, so they cannot be forgotten or ignored. Result types achieve this without the complexity of try-catch blocks everywhere.
