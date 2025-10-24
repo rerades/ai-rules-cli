@@ -75,7 +75,7 @@ export const createInfoMessage = (message: string): string => {
 export const formatRule = (rule: {
   readonly id: string;
   readonly title: string;
-  readonly summary?: string;
+  readonly description?: string;
   readonly category: string;
   readonly maturity?: string;
 }): string => {
@@ -83,9 +83,11 @@ export const formatRule = (rule: {
   const id = colors.muted(`(${rule.id})`);
   const category = colors.secondary(`[${rule.category}]`);
   const maturity = rule.maturity ? colors.warning(`[${rule.maturity}]`) : "";
-  const summary = rule.summary ? colors.info(`\n    ${rule.summary}`) : "";
+  const description = rule.description
+    ? colors.info(`\n    ${rule.description}`)
+    : "";
 
-  return `${title} ${id} ${category} ${maturity}${summary}`;
+  return `${title} ${id} ${category} ${maturity}${description}`;
 };
 
 /**

@@ -92,8 +92,8 @@ const createIndexContent = (
       content += `- **[${rule.metadata.title}](${rule.fileName}.mdc)**`;
       content += ` (${rule.metadata.id})`;
 
-      if (rule.metadata.summary) {
-        content += ` - ${rule.metadata.summary}`;
+      if (rule.metadata.description) {
+        content += ` - ${rule.metadata.description}`;
       }
 
       if (rule.metadata.maturity) {
@@ -115,8 +115,8 @@ const createIndexContent = (
     content += `**Version:** ${rule.metadata.version}\n`;
     content += `**Category:** ${rule.metadata.category}\n`;
 
-    if (rule.metadata.summary) {
-      content += `**Summary:** ${rule.metadata.summary}\n`;
+    if (rule.metadata.description) {
+      content += `**Description:** ${rule.metadata.description}\n`;
     }
 
     if (rule.metadata.scope) {

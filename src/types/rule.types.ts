@@ -14,7 +14,10 @@ export type Category =
   | "accessibility"
   | "performance"
   | "architecture"
-  | "docs";
+  | "documentation"
+  | "templates"
+  | "typescript"
+  | "testing";
 
 export type Scope =
   | "global"
@@ -135,7 +138,7 @@ export interface Link {
 
 export interface I18nContent {
   readonly title?: string;
-  readonly summary?: string;
+  readonly description?: string; // Changed from summary to description
 }
 
 // Main rule metadata interface
@@ -143,7 +146,9 @@ export interface RuleMetadata {
   readonly id: string; // Pattern: ^[a-z0-9]+(\.[a-z0-9-]+)+$
   readonly version: string; // SemVer pattern
   readonly title: string; // minLength: 3
-  readonly summary?: string;
+  readonly description?: string; // Changed from summary to description
+  readonly alwaysApply?: boolean; // New field with default true
+  readonly globs?: readonly string[]; // New field for file pattern matching
   readonly category: Category;
   readonly scope?: readonly Scope[];
   readonly language?: Language;

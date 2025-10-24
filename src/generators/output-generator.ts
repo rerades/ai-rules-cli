@@ -147,7 +147,7 @@ const createFrontmatter = (metadata: RuleContent["metadata"]): string => {
   };
 
   // Add optional fields
-  if (metadata.summary) frontmatter.summary = metadata.summary;
+  if (metadata.description) frontmatter.description = metadata.description;
   if (metadata.category) frontmatter.category = metadata.category;
   if (metadata.scope) frontmatter.scope = metadata.scope;
   if (metadata.language) frontmatter.language = metadata.language;

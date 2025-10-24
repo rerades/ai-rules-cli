@@ -1,5 +1,6 @@
 {
   "$id": "https://example.org/schemas/mdc-rule.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Cursor Rule Metadata",
   "type": "object",
   "required": ["id", "version", "title", "category"],
@@ -11,7 +12,13 @@
       "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
     },
     "title": { "type": "string", "minLength": 3 },
-    "summary": { "type": "string" },
+    "description": { "type": "string" },
+    "alwaysApply": { "type": "boolean", "default": true },
+    "globs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
     "category": {
       "type": "string",
       "enum": [
@@ -24,7 +31,10 @@
         "accessibility",
         "performance",
         "architecture",
-        "docs"
+        "documentation",
+        "templates",
+        "typescript",
+        "testing"
       ]
     },
     "scope": {

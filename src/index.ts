@@ -82,17 +82,20 @@ program
  * List command - List available rules
  */
 program
-  .command("list")
+  .command("list [query]")
   .description("List all available rules")
   .option("-c, --category <category>", "Filter by category")
-  .option("-s, --search <query>", "Search rules by title or summary")
+  .option("-s, --search <query>", "Search rules by title or description")
   .option("-v, --verbose", "Show detailed information")
   .action(
-    async (options: {
-      category?: string;
-      search?: string;
-      verbose?: boolean;
-    }) => {
+    async (
+      query: string,
+      options: {
+        category?: string;
+        search?: string;
+        verbose?: boolean;
+      }
+    ) => {
       try {
         console.log(createWelcomeBanner());
 
@@ -106,12 +109,13 @@ program
           );
         }
 
-        if (options.search) {
-          const query = options.search.toLowerCase();
+        const searchQuery = options.search || query;
+        if (searchQuery) {
+          const lowerQuery = searchQuery.toLowerCase();
           filteredRules = filteredRules.filter(
             (rule) =>
-              rule.metadata.title.toLowerCase().includes(query) ||
-              rule.metadata.summary?.toLowerCase().includes(query)
+              rule.metadata.title.toLowerCase().includes(lowerQuery) ||
+              rule.metadata.description?.toLowerCase().includes(lowerQuery)
           );
         }
 
@@ -120,8 +124,8 @@ program
         for (const rule of filteredRules) {
           console.log(`• ${rule.metadata.title} (${rule.metadata.id})`);
           console.log(`  Category: ${rule.metadata.category}`);
-          if (rule.metadata.summary) {
-            console.log(`  Summary: ${rule.metadata.summary}`);
+          if (rule.metadata.description) {
+            console.log(`  Description: ${rule.metadata.description}`);
           }
           if (options.verbose) {
             console.log(`  Version: ${rule.metadata.version}`);
