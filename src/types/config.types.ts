@@ -23,7 +23,7 @@ export interface CLIConfig {
 // Default configuration
 export const DEFAULT_CONFIG: CLIConfig = {
   repository: {
-    path: "/Users/rerades/_DEV/AI/_RERADES/ai-rules",
+    path: "~/ai-rules",
     rulesDirectory: "rules",
     schemaPath: "mdc.schema.json",
   },
