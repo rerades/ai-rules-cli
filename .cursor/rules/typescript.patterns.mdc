@@ -1,0 +1,571 @@
+---
+id: typescript.patterns.guidelines
+version: 1.0.0
+title: "TypeScript Patterns Guidelines"
+summary: "Advanced TypeScript patterns including discriminated unions, interface inheritance, enum alternatives, and return type conventions."
+category: typescript
+scope: ["global", "repo", "package", "workspace", "app", "component"]
+language: "typescript"
+frameworks: ["typescript"]
+tooling: ["typescript", "tsc"]
+lifecycle: "enforced"
+maturity: "stable"
+stability: "locked"
+audience: ["frontend", "backend", "fullstack"]
+severity: "medium"
+requires: ["typescript.type-safety"]
+conflicts: []
+supersedes: []
+bundles: ["typescript/patterns", "typescript/best-practices"]
+files: ["**/*.ts", "**/*.tsx", "**/*.astro"]
+enforcement: { lint: "warn", ci: "allow", scaffold: "none" }
+order: 20
+inputs:
+  enforceDiscriminatedUnions:
+    {
+      type: "boolean",
+      default: true,
+      description: "Enforce discriminated unions for modeling multiple shapes",
+    }
+  preferInterfaces:
+    {
+      type: "boolean",
+      default: true,
+      description: "Prefer interfaces over type intersections",
+    }
+  avoidEnums:
+    {
+      type: "boolean",
+      default: true,
+      description: "Avoid TypeScript enums in favor of as const objects",
+    }
+tags:
+  [
+    "topic:typescript",
+    "topic:patterns",
+    "topic:discriminated-unions",
+    "topic:best-practices",
+  ]
+owner: "typescript@tu-org.com"
+review: { lastReviewed: "2025-01-20", reviewCycleDays: 90 }
+license: "MIT"
+links:
+  - {
+      rel: "docs",
+      href: "https://www.typescriptlang.org/docs/handbook/2/narrowing.html#discriminated-unions",
+    }
+  - {
+      rel: "docs",
+      href: "https://www.typescriptlang.org/docs/handbook/2/everyday-types.html",
+    }
+---
+
+# TypeScript Patterns Guidelines
+
+You are an expert TypeScript developer who uses advanced patterns to model data accurately and write maintainable code.
+
+## Core Principle
+
+**Model your data's shape accurately**. TypeScript's type system is powerful - use discriminated unions, proper interfaces, and explicit return types to make impossible states impossible.
+
+## 1. Discriminated Unions
+
+### ✅ Rule: Use Discriminated Unions for Multiple Shapes
+
+When data can be in one of several shapes, use discriminated unions with a literal type discriminator field.
+
+### Why Discriminated Unions?
+
+They prevent the "bag of optionals" anti-pattern where impossible states are representable:
+
+```typescript
+// ❌ Bad: Bag of optionals - allows impossible states
+interface FetchState<TData> {
+  status: "idle" | "loading" | "success" | "error";
+  data?: TData;
+  error?: Error;
+}
+
+// This is invalid but TypeScript allows it:
+const badState: FetchState<User> = {
+  status: "idle",
+  data: user, // Why would idle state have data?
+  error: new Error(), // Why would idle state have an error?
+};
+
+// ✅ Good: Discriminated union - impossible states are impossible
+type FetchState<TData> =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "success"; data: TData }
+  | { status: "error"; error: Error };
+
+// Now invalid states cannot be represented:
+// const badState: FetchState<User> = {
+//   status: "idle",
+//   data: user,        // Compile error!
+// };
+```
+
+### Pattern: Event Systems
+
+```typescript
+// ✅ Excellent: Event system with discriminated unions
+type UserCreatedEvent = {
+  type: "user.created";
+  data: { id: string; email: string; name: string };
+  timestamp: number;
+};
+
+type UserDeletedEvent = {
+  type: "user.deleted";
+  data: { id: string; reason: string };
+  timestamp: number;
+};
+
+type UserUpdatedEvent = {
+  type: "user.updated";
+  data: { id: string; changes: Partial<User> };
+  timestamp: number;
+};
+
+type Event = UserCreatedEvent | UserDeletedEvent | UserUpdatedEvent;
+
+// Type-safe event handling with exhaustive checking
+function handleEvent(event: Event) {
+  switch (event.type) {
+    case "user.created":
+      console.log(`User created: ${event.data.email}`);
+      // TypeScript knows event.data has email, name
+      break;
+    case "user.deleted":
+      console.log(`User deleted: ${event.data.reason}`);
+      // TypeScript knows event.data has reason
+      break;
+    case "user.updated":
+      console.log(`User updated: ${Object.keys(event.data.changes)}`);
+      // TypeScript knows event.data has changes
+      break;
+    default:
+      // Exhaustiveness check - compile error if we miss a case
+      const _exhaustive: never = event;
+      throw new Error(`Unhandled event type: ${(_exhaustive as Event).type}`);
+  }
+}
+```
+
+### Pattern: API Responses
+
+```typescript
+// ✅ Model API responses with discriminated unions
+type ApiResponse<TData> =
+  | { success: true; data: TData }
+  | { success: false; error: { code: string; message: string } };
+
+async function fetchUser(id: string): Promise<ApiResponse<User>> {
+  try {
+    const response = await fetch(`/api/users/${id}`);
+    if (response.ok) {
+      const data = await response.json();
+      return { success: true, data };
+    }
+    return {
+      success: false,
+      error: {
+        code: "FETCH_ERROR",
+        message: response.statusText,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: {
+        code: "NETWORK_ERROR",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+    };
+  }
+}
+
+// Type-safe response handling
+const response = await fetchUser("123");
+if (response.success) {
+  console.log(response.data.name); // TypeScript knows data exists
+} else {
+  console.error(response.error.message); // TypeScript knows error exists
+}
+```
+
+### Pattern: Form States
+
+```typescript
+// ✅ Model complex form states
+type FormState<TData> =
+  | { state: "editing"; data: TData; isDirty: boolean }
+  | { state: "validating"; data: TData }
+  | { state: "submitting"; data: TData }
+  | { state: "success"; submittedData: TData }
+  | { state: "error"; data: TData; error: string };
+
+function renderForm(formState: FormState<UserForm>) {
+  switch (formState.state) {
+    case "editing":
+      return formState.isDirty ? "Save Changes?" : "Form";
+    case "validating":
+      return "Validating...";
+    case "submitting":
+      return "Submitting...";
+    case "success":
+      return `Success! Submitted: ${formState.submittedData.email}`;
+    case "error":
+      return `Error: ${formState.error}`;
+  }
+}
+```
+
+## 2. Interfaces vs Type Aliases
+
+### ✅ Rule: ALWAYS Prefer Interfaces for Inheritance
+
+Use `interface extends` instead of type intersections (`&`) for better performance and clearer error messages.
+
+### Why Interfaces?
+
+The `&` (intersection) operator has **terrible performance** in TypeScript's type checker. It creates a new type on every use, while interfaces are cached.
+
+```typescript
+// ❌ Bad: Type intersections (slow, poor error messages)
+type A = {
+  a: string;
+};
+
+type B = {
+  b: string;
+};
+
+type C = A & B; // Creates new type every time
+type D = C & { d: string }; // More intersections = worse performance
+
+// ✅ Good: Interface inheritance (fast, clear errors)
+interface A {
+  a: string;
+}
+
+interface B {
+  b: string;
+}
+
+interface C extends A, B {
+  // Cached by TypeScript
+}
+
+interface D extends C {
+  d: string;
+}
+```
+
+### When to Use Type Aliases
+
+Use `type` for:
+
+- Union types: `type Status = "active" | "inactive"`
+- Mapped types: `type Readonly<T> = { readonly [P in keyof T]: T[P] }`
+- Conditional types: `type NonNullable<T> = T extends null | undefined ? never : T`
+- Primitive aliases: `type ID = string | number`
+
+```typescript
+// ✅ Good: Type for unions
+type Status = "pending" | "approved" | "rejected";
+
+// ✅ Good: Type for mapped types
+type Optional<T> = {
+  [P in keyof T]?: T[P];
+};
+
+// ✅ Good: Interface for object shapes
+interface User {
+  id: string;
+  name: string;
+  status: Status;
+}
+
+// ✅ Good: Interface extending interface
+interface AdminUser extends User {
+  permissions: string[];
+}
+```
+
+### Combining Both
+
+```typescript
+// ✅ Excellent: Use both appropriately
+type EventType = "click" | "hover" | "focus";
+
+interface BaseEvent {
+  type: EventType;
+  timestamp: number;
+}
+
+interface ClickEvent extends BaseEvent {
+  type: "click";
+  x: number;
+  y: number;
+}
+
+interface HoverEvent extends BaseEvent {
+  type: "hover";
+  target: HTMLElement;
+}
+
+type Event = ClickEvent | HoverEvent; // Union of interfaces
+```
+
+## 3. Avoid TypeScript Enums
+
+### ✅ Rule: Do Not Introduce New Enums
+
+TypeScript enums have surprising behavior and runtime overhead. Use `as const` objects instead.
+
+### Problems with Enums
+
+```typescript
+// ❌ Bad: Numeric enum creates reverse mapping
+enum Direction {
+  Up, // 0
+  Down, // 1
+  Left, // 2
+  Right, // 3
+}
+
+console.log(Direction.Up); // 0
+console.log(Direction[0]); // "Up"
+console.log(Object.keys(Direction)); // ["0", "1", "2", "3", "Up", "Down", "Left", "Right"]
+console.log(Object.keys(Direction).length); // 8 (not 4!)
+
+// ❌ Bad: Enums are not type-safe
+function move(direction: Direction) {
+  // ...
+}
+
+move(999); // Valid! Any number is accepted
+```
+
+### ✅ Use `as const` Objects
+
+```typescript
+// ✅ Good: as const object (no runtime overhead)
+const Direction = {
+  Up: "UP",
+  Down: "DOWN",
+  Left: "LEFT",
+  Right: "RIGHT",
+} as const;
+
+type Direction = (typeof Direction)[keyof typeof Direction];
+// type Direction = "UP" | "DOWN" | "LEFT" | "RIGHT"
+
+// Type-safe and only valid values accepted
+function move(direction: Direction) {
+  // ...
+}
+
+move(Direction.Up); // ✅ Valid
+move("UP"); // ✅ Valid
+// move("INVALID"); // ❌ Compile error
+// move(999);         // ❌ Compile error
+```
+
+### Pattern: API Enums
+
+```typescript
+// ✅ Mapping between frontend and backend enums
+const SizeMap = {
+  xs: "EXTRA_SMALL",
+  sm: "SMALL",
+  md: "MEDIUM",
+  lg: "LARGE",
+  xl: "EXTRA_LARGE",
+} as const;
+
+type FrontendSize = keyof typeof SizeMap;
+// type FrontendSize = "xs" | "sm" | "md" | "lg" | "xl"
+
+type BackendSize = (typeof SizeMap)[FrontendSize];
+// type BackendSize = "EXTRA_SMALL" | "SMALL" | "MEDIUM" | "LARGE" | "EXTRA_LARGE"
+
+function sendToBackend(size: FrontendSize): BackendSize {
+  return SizeMap[size];
+}
+
+const backendSize = sendToBackend("md"); // "MEDIUM"
+```
+
+### Handling Existing Enums
+
+```typescript
+// If you have existing enums, keep them but don't create new ones
+
+// ✅ Keep existing enum (for backwards compatibility)
+enum HttpStatus {
+  OK = 200,
+  NotFound = 404,
+  ServerError = 500,
+}
+
+// ✅ But for new code, use as const
+const HttpStatusCode = {
+  OK: 200,
+  NotFound: 404,
+  ServerError: 500,
+} as const;
+
+type HttpStatusCode = (typeof HttpStatusCode)[keyof typeof HttpStatusCode];
+```
+
+## 4. Explicit Return Types
+
+### ✅ Rule: Declare Return Types for Top-Level Functions
+
+Always declare return types for top-level module functions. This helps future developers (and AI assistants) understand the function's contract.
+
+### Why Explicit Return Types?
+
+1. **Documentation**: The return type is self-documenting
+2. **Safety**: Prevents accidentally changing return type
+3. **Performance**: TypeScript doesn't have to infer the type
+4. **Errors**: Catches return type errors at function definition, not call site
+
+```typescript
+// ❌ Bad: No return type (what does this return?)
+const calculateTotal = (items) => {
+  return items.reduce((sum, item) => sum + item.price, 0);
+};
+
+// ✅ Good: Explicit return type
+const calculateTotal = (items: Item[]): number => {
+  return items.reduce((sum, item) => sum + item.price, 0);
+};
+
+// ✅ Good: Explicit return type prevents errors
+const getUser = (id: string): User => {
+  // If you accidentally return null, TypeScript catches it here
+  // return null; // Error: Type 'null' is not assignable to type 'User'
+  return { id, name: "John", email: "john@example.com" };
+};
+```
+
+### Exception: Components Returning JSX
+
+For React/Astro components returning JSX, the return type is always obvious, so it can be omitted:
+
+```tsx
+// ✅ Good: No return type needed for JSX components
+const MyComponent = ({ title }: { title: string }) => {
+  return <div>{title}</div>;
+};
+
+// This is fine too, but unnecessary:
+const MyComponent = ({ title }: { title: string }): JSX.Element => {
+  return <div>{title}</div>;
+};
+```
+
+### Pattern: Async Functions
+
+```typescript
+// ✅ Good: Explicit Promise return type
+const fetchUser = async (id: string): Promise<User> => {
+  const response = await fetch(`/api/users/${id}`);
+  return response.json();
+};
+
+// ✅ Good: Explicit Promise with union type
+const fetchUserSafe = async (id: string): Promise<User | null> => {
+  try {
+    const response = await fetch(`/api/users/${id}`);
+    return response.json();
+  } catch {
+    return null;
+  }
+};
+```
+
+### Pattern: Generator Functions
+
+```typescript
+// ✅ Good: Explicit generator return type
+function* numberGenerator(): Generator<number, void, undefined> {
+  let i = 0;
+  while (true) {
+    yield i++;
+  }
+}
+
+// ✅ Good: Async generator
+async function* fetchPages(): AsyncGenerator<Page[], void, undefined> {
+  let page = 1;
+  while (true) {
+    const data = await fetchPage(page++);
+    if (data.length === 0) break;
+    yield data;
+  }
+}
+```
+
+## 5. Advanced Patterns
+
+### Pattern: Builder Pattern with Type Safety
+
+```typescript
+// ✅ Type-safe builder pattern
+interface QueryBuilder<TSelected extends string = never> {
+  select<K extends keyof User>(field: K): QueryBuilder<TSelected | K>;
+  where(condition: string): this;
+  execute(): Pick<User, TSelected>;
+}
+
+const query = createQueryBuilder<User>()
+  .select("id")
+  .select("name")
+  .where("active = true")
+  .execute();
+// type of query: { id: string; name: string }
+```
+
+### Pattern: Branded Types
+
+```typescript
+// ✅ Branded types for nominal typing
+type UserId = string & { readonly __brand: "UserId" };
+type PostId = string & { readonly __brand: "PostId" };
+
+function createUserId(id: string): UserId {
+  return id as UserId;
+}
+
+function createPostId(id: string): PostId {
+  return id as PostId;
+}
+
+function getUser(id: UserId): User {
+  // ...
+}
+
+const userId = createUserId("user-123");
+const postId = createPostId("post-456");
+
+getUser(userId); // ✅ Valid
+// getUser(postId);    // ❌ Compile error!
+```
+
+## Summary
+
+1. **Use discriminated unions** - For data that can be in multiple shapes
+2. **Prefer interfaces** - For inheritance and object shapes
+3. **Avoid enums** - Use `as const` objects instead
+4. **Explicit return types** - For all top-level functions (except JSX components)
+5. **Model impossible states** - Make them impossible to represent
+
+## Remember
+
+TypeScript's type system is a powerful tool for catching bugs at compile time. Use these patterns to make your code more maintainable, self-documenting, and resistant to errors.

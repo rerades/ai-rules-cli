@@ -1,0 +1,557 @@
+---
+id: typescript.conventions.guidelines
+version: 1.0.0
+title: "TypeScript Conventions Guidelines"
+summary: "Import/export conventions, naming standards, and code style guidelines for TypeScript projects."
+category: typescript
+scope: ["global", "repo", "package", "workspace", "app", "component"]
+language: "typescript"
+frameworks: ["typescript", "react", "next", "astro"]
+tooling: ["typescript", "eslint", "prettier"]
+lifecycle: "enforced"
+maturity: "stable"
+stability: "locked"
+audience: ["frontend", "backend", "fullstack"]
+severity: "low"
+requires: []
+conflicts: []
+supersedes: []
+bundles: ["typescript/conventions", "typescript/style"]
+files: ["**/*.ts", "**/*.tsx", "**/*.astro"]
+enforcement: { lint: "warn", ci: "allow", scaffold: "none" }
+order: 30
+inputs:
+  enforceImportType:
+    {
+      type: "boolean",
+      default: true,
+      description: "Enforce import type for type-only imports",
+    }
+  avoidDefaultExports:
+    {
+      type: "boolean",
+      default: true,
+      description: "Avoid default exports except where required by framework",
+    }
+  enforceNamingConventions:
+    {
+      type: "boolean",
+      default: true,
+      description: "Enforce naming conventions for files and identifiers",
+    }
+tags: ["topic:typescript", "topic:conventions", "topic:imports", "topic:naming"]
+owner: "typescript@tu-org.com"
+review: { lastReviewed: "2025-01-20", reviewCycleDays: 90 }
+license: "MIT"
+links:
+  - {
+      rel: "docs",
+      href: "https://www.typescriptlang.org/docs/handbook/modules.html",
+    }
+  - { rel: "docs", href: "https://basarat.gitbook.io/typescript/styleguide" }
+---
+
+# TypeScript Conventions Guidelines
+
+You are an expert TypeScript developer who follows consistent conventions for imports, exports, and naming.
+
+## Core Principle
+
+**Consistency and clarity**. Follow these conventions to make your codebase easier to navigate, refactor, and maintain.
+
+## 1. Import Type
+
+### ✅ Rule: Use `import type` for Type-Only Imports
+
+Always use `import type` when importing types. Prefer top-level `import type` over inline `import { type ... }`.
+
+### Why?
+
+In certain transpilation environments, inline type imports are not fully erased, leaving an empty import statement in the output.
+
+```typescript
+// ❌ Bad: Inline type import
+import { type User, type Post } from "./types";
+
+// After transpilation (some environments):
+import "./types"; // Empty import left behind!
+
+// ✅ Good: Top-level import type
+import type { User, Post } from "./types";
+
+// After transpilation:
+// (completely erased, no import statement)
+```
+
+### Mixing Value and Type Imports
+
+When importing both values and types from the same module:
+
+```typescript
+// ✅ Good: Separate import statements
+import { fetchUser, createUser } from "./api";
+import type { User, CreateUserDto } from "./api";
+
+// ❌ Avoid: Mixing in one statement (harder to see what's a type)
+import { fetchUser, createUser, type User, type CreateUserDto } from "./api";
+```
+
+### Pattern: Third-Party Library Types
+
+```typescript
+// ✅ Good: Import types from libraries
+import type { Request, Response, NextFunction } from "express";
+import type { ReactNode, FC } from "react";
+
+// ✅ Good: Import value and type separately
+import express from "express";
+import type { Express, Router } from "express";
+```
+
+### ESLint Configuration
+
+```json
+{
+  "rules": {
+    "@typescript-eslint/consistent-type-imports": [
+      "error",
+      {
+        "prefer": "type-imports",
+        "disallowTypeAnnotations": false,
+        "fixStyle": "separate-type-imports"
+      }
+    ]
+  }
+}
+```
+
+## 2. Default Exports
+
+### ✅ Rule: Avoid Default Exports (Unless Required by Framework)
+
+Default exports create confusion and make refactoring harder. Use named exports instead.
+
+### Problems with Default Exports
+
+```typescript
+// ❌ Bad: Default export (file: userService.ts)
+export default function fetchUser(id: string) {
+  // ...
+}
+
+// Problem 1: Import name is arbitrary
+import fetchUser from "./userService"; // Could be anything
+import getUser from "./userService"; // Same function, different name
+import anything from "./userService"; // Still the same function!
+
+// Problem 2: IDE refactoring doesn't work well
+// If you rename fetchUser in the source file,
+// imports are not updated automatically
+
+// ✅ Good: Named export
+export function fetchUser(id: string) {
+  // ...
+}
+
+// Benefit 1: Import name must match
+import { fetchUser } from "./userService";
+
+// Benefit 2: IDE refactoring works
+// Renaming fetchUser updates all imports automatically
+
+// Benefit 3: Clear what you're importing
+import { fetchUser, createUser, deleteUser } from "./userService";
+```
+
+### Framework Exceptions
+
+Some frameworks require default exports. This is acceptable:
+
+```tsx
+// ✅ Acceptable: Next.js pages require default export
+// app/page.tsx
+export default function HomePage() {
+  return <div>Home</div>;
+}
+
+// ✅ Acceptable: Next.js API routes require default export
+// app/api/users/route.ts
+export default async function handler(req: Request) {
+  // ...
+}
+
+// ✅ Acceptable: Astro pages can use default export
+// src/pages/index.astro
+export default function IndexPage() {
+  return <div>Home</div>;
+}
+```
+
+### Pattern: Module Organization
+
+```typescript
+// ✅ Good: Multiple named exports (file: userService.ts)
+export async function fetchUser(id: string): Promise<User> {
+  // ...
+}
+
+export async function createUser(data: CreateUserDto): Promise<User> {
+  // ...
+}
+
+export async function updateUser(
+  id: string,
+  data: UpdateUserDto
+): Promise<User> {
+  // ...
+}
+
+export async function deleteUser(id: string): Promise<void> {
+  // ...
+}
+
+// Usage
+import { fetchUser, createUser, updateUser, deleteUser } from "./userService";
+```
+
+### Pattern: Re-exporting
+
+```typescript
+// ✅ Good: Re-export with named exports (file: index.ts)
+export { fetchUser, createUser } from "./userService";
+export { fetchPost, createPost } from "./postService";
+export type { User, Post } from "./types";
+
+// Usage
+import { fetchUser, fetchPost } from "./api";
+```
+
+## 3. Naming Conventions
+
+### ✅ Rule: Follow Consistent Naming Patterns
+
+Use consistent naming conventions for files, variables, functions, types, and constants.
+
+### File Names
+
+```
+✅ Use kebab-case for files
+user-service.ts
+api-client.ts
+date-utils.ts
+create-user-form.tsx
+
+❌ Avoid other cases
+UserService.ts
+apiClient.ts
+date_utils.ts
+```
+
+### Variables and Functions
+
+```typescript
+// ✅ Good: camelCase for variables and functions
+const userName = "John";
+const isActive = true;
+
+function calculateTotal(items: Item[]): number {
+  // ...
+}
+
+const fetchUserData = async (id: string): Promise<User> => {
+  // ...
+};
+
+// ❌ Bad: Other cases
+const user_name = "John"; // snake_case
+const IsActive = true; // PascalCase
+```
+
+### Classes, Types, and Interfaces
+
+```typescript
+// ✅ Good: PascalCase (UpperCamelCase) for types
+class UserService {
+  // ...
+}
+
+interface User {
+  id: string;
+  name: string;
+}
+
+type Status = "active" | "inactive";
+
+type ApiResponse<TData> = {
+  data: TData;
+  status: number;
+};
+
+// ❌ Bad: Other cases
+class userService {} // camelCase
+interface user {} // lowercase
+type api_response = {}; // snake_case
+```
+
+### Constants
+
+```typescript
+// ✅ Good: ALL_CAPS for module-level constants
+const MAX_RETRY_COUNT = 3;
+const API_BASE_URL = "https://api.example.com";
+const DEFAULT_TIMEOUT = 5000;
+
+// ✅ Good: Enum-like constants
+const HttpStatus = {
+  OK: 200,
+  NOT_FOUND: 404,
+  SERVER_ERROR: 500,
+} as const;
+
+// ✅ Also acceptable: camelCase for local constants
+function processData() {
+  const maxItems = 100; // Local scope, less important
+  const defaultValue = ""; // Local scope, less important
+}
+
+// ❌ Bad: Inconsistent naming
+const max_retry_count = 3; // snake_case
+const apiBaseUrl = "https://api.example.com"; // camelCase for constant
+```
+
+### Type Parameters (Generics)
+
+```typescript
+// ✅ Good: Prefix with T for clarity
+type RecordOfArrays<TItem> = Record<string, TItem[]>;
+
+function createPair<TKey, TValue>(key: TKey, value: TValue) {
+  return { key, value };
+}
+
+interface Repository<TEntity, TId> {
+  findById(id: TId): Promise<TEntity | null>;
+  save(entity: TEntity): Promise<TEntity>;
+}
+
+// ✅ Also acceptable: Descriptive names for clarity
+type ApiResponse<TData, TError = Error> = {
+  data?: TData;
+  error?: TError;
+};
+
+function mapArray<TInput, TOutput>(
+  items: TInput[],
+  mapper: (item: TInput) => TOutput
+): TOutput[] {
+  return items.map(mapper);
+}
+
+// ❌ Bad: Single letter (unclear in complex types)
+type Complex<T, U, V, W> = {
+  // Hard to understand what T, U, V, W represent
+};
+
+// ✅ Good: Descriptive names for complex types
+type Complex<TUser, TPost, TComment, TMetadata> = {
+  // Clear what each type parameter represents
+};
+```
+
+### Boolean Variables
+
+```typescript
+// ✅ Good: Use is/has/can prefix for booleans
+const isActive = true;
+const hasPermission = false;
+const canEdit = true;
+const shouldRetry = false;
+
+// ✅ Good: Boolean function names
+function isValidEmail(email: string): boolean {
+  // ...
+}
+
+function hasAccess(user: User, resource: Resource): boolean {
+  // ...
+}
+
+// ❌ Bad: Non-descriptive boolean names
+const active = true; // Is this a boolean?
+const permission = false; // Unclear type
+```
+
+### Private Class Members (Modern)
+
+```typescript
+// ✅ Good: Use # for private fields (modern)
+class UserService {
+  #apiKey: string;
+  #cache: Map<string, User>;
+
+  constructor(apiKey: string) {
+    this.#apiKey = apiKey;
+    this.#cache = new Map();
+  }
+
+  #validateKey(): boolean {
+    return this.#apiKey.length > 0;
+  }
+}
+
+// ✅ Also acceptable: Use private keyword
+class UserService {
+  private apiKey: string;
+  private cache: Map<string, User>;
+
+  constructor(apiKey: string) {
+    this.apiKey = apiKey;
+    this.cache = new Map();
+  }
+
+  private validateKey(): boolean {
+    return this.apiKey.length > 0;
+  }
+}
+
+// ❌ Outdated: Underscore prefix (old convention)
+class UserService {
+  private _apiKey: string; // Don't use _prefix
+}
+```
+
+## 4. File Organization
+
+### Module Structure
+
+```typescript
+// ✅ Good: Consistent order
+// 1. Imports (types first, then values)
+import type { User, Post } from "./types";
+import { fetchData, processData } from "./utils";
+
+// 2. Constants
+const API_BASE_URL = "https://api.example.com";
+
+// 3. Types (if not in separate file)
+interface UserServiceConfig {
+  apiKey: string;
+  timeout: number;
+}
+
+// 4. Main code
+export class UserService {
+  // ...
+}
+
+// 5. Utility functions
+function validateConfig(config: UserServiceConfig): boolean {
+  // ...
+}
+
+// 6. Exports (if not inline)
+export { validateConfig };
+```
+
+### Directory Naming
+
+```
+✅ Use kebab-case for directories
+src/
+  user-service/
+  api-client/
+  date-utils/
+  components/
+    user-profile/
+    post-list/
+```
+
+## 5. Comment Conventions
+
+### JSDoc for Public APIs
+
+```typescript
+// ✅ Good: JSDoc for public functions
+/**
+ * Fetches a user by ID from the API
+ * @param id - The user's unique identifier
+ * @returns A promise resolving to the user object
+ * @throws {Error} If the user is not found or network fails
+ */
+export async function fetchUser(id: string): Promise<User> {
+  // ...
+}
+
+/**
+ * Configuration options for the UserService
+ */
+export interface UserServiceConfig {
+  /** API endpoint URL */
+  apiUrl: string;
+  /** Request timeout in milliseconds */
+  timeout: number;
+  /** Maximum number of retry attempts */
+  maxRetries: number;
+}
+```
+
+### Inline Comments
+
+```typescript
+// ✅ Good: Explain why, not what
+// We use a Map instead of Object for faster lookups with non-string keys
+const cache = new Map<number, User>();
+
+// Retry logic needed because API is unreliable during peak hours
+const maxRetries = 3;
+
+// ❌ Bad: Explain what (code already shows this)
+// Create a new Map
+const cache = new Map<number, User>();
+
+// Set maxRetries to 3
+const maxRetries = 3;
+```
+
+## Summary
+
+1. **Use `import type`** - For all type-only imports
+2. **Avoid default exports** - Except where required by framework
+3. **Follow naming conventions**:
+   - kebab-case for files
+   - camelCase for variables/functions
+   - PascalCase for types/classes
+   - ALL_CAPS for constants
+   - Prefix type parameters with T
+4. **Organize files consistently** - Types, then values, then exports
+5. **Document public APIs** - Use JSDoc for exported functions
+
+## ESLint Rules Recommendation
+
+```json
+{
+  "rules": {
+    "@typescript-eslint/consistent-type-imports": "error",
+    "@typescript-eslint/no-default-export": "warn",
+    "@typescript-eslint/naming-convention": [
+      "error",
+      {
+        "selector": "variable",
+        "format": ["camelCase", "UPPER_CASE"]
+      },
+      {
+        "selector": "function",
+        "format": ["camelCase"]
+      },
+      {
+        "selector": "typeLike",
+        "format": ["PascalCase"]
+      }
+    ]
+  }
+}
+```
+
+## Remember
+
+Conventions are about consistency, not perfection. The goal is to make your codebase predictable and easy to navigate for all developers (and AI assistants).

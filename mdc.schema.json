@@ -1,0 +1,251 @@
+{
+  "$id": "https://example.org/schemas/mdc-rule.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Cursor Rule Metadata",
+  "type": "object",
+  "required": ["id", "version", "title", "category"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(\\.[a-z0-9-]+)+$" },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "title": { "type": "string", "minLength": 3 },
+    "summary": { "type": "string" },
+    "category": {
+      "type": "string",
+      "enum": [
+        "foundation",
+        "language",
+        "framework",
+        "tooling",
+        "qa",
+        "security",
+        "accessibility",
+        "performance",
+        "architecture",
+        "docs"
+      ]
+    },
+    "scope": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "global",
+          "repo",
+          "package",
+          "workspace",
+          "app",
+          "component",
+          "page",
+          "route",
+          "api",
+          "ci",
+          "cd"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "language": {
+      "type": "string",
+      "enum": [
+        "js",
+        "ts",
+        "python",
+        "java",
+        "go",
+        "rust",
+        "html",
+        "css",
+        "shell",
+        "none"
+      ]
+    },
+    "frameworks": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "react",
+          "astro",
+          "svelte",
+          "vue",
+          "angular",
+          "lit",
+          "next",
+          "remix",
+          "node",
+          "express",
+          "fastify",
+          "none"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "tooling": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "eslint",
+          "prettier",
+          "vitest",
+          "jest",
+          "playwright",
+          "wdio",
+          "cypress",
+          "lighthouse",
+          "axe",
+          "pa11y",
+          "msw",
+          "pact",
+          "snyk",
+          "osv",
+          "husky",
+          "lint-staged",
+          "turbo",
+          "vite",
+          "webpack",
+          "rollup",
+          "parcel",
+          "pnpm",
+          "npm",
+          "yarn"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "lifecycle": {
+      "type": "string",
+      "enum": ["advisory", "recommended", "enforced"]
+    },
+    "maturity": {
+      "type": "string",
+      "enum": ["draft", "beta", "stable", "deprecated"]
+    },
+    "stability": {
+      "type": "string",
+      "enum": ["experimental", "evolving", "locked"]
+    },
+    "audience": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "frontend",
+          "backend",
+          "fullstack",
+          "qa",
+          "a11y",
+          "sec",
+          "devops",
+          "docs"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["info", "low", "medium", "high", "critical"]
+    },
+    "requires": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9]+(\\.[a-z0-9-]+)+$" },
+      "uniqueItems": true
+    },
+    "conflicts": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9]+(\\.[a-z0-9-]+)+$" },
+      "uniqueItems": true
+    },
+    "supersedes": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9]+(\\.[a-z0-9-]+)+$" },
+      "uniqueItems": true
+    },
+    "bundles": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9-]+(/[a-z0-9-]+)*$" },
+      "uniqueItems": true
+    },
+    "files": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "enforcement": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "lint": { "type": "string", "enum": ["off", "warn", "error"] },
+        "ci": { "type": "string", "enum": ["allow", "block"] },
+        "scaffold": { "type": "string", "enum": ["none", "add", "update"] }
+      }
+    },
+    "order": { "type": "integer", "minimum": 0, "maximum": 1000 },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["string", "number", "boolean", "enum"]
+          },
+          "description": { "type": "string" },
+          "default": {},
+          "enum": { "type": "array", "items": {} }
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(topic|lint|test|perf|a11y|sec):[a-z0-9-\\.]+$"
+      },
+      "maxItems": 5,
+      "uniqueItems": true
+    },
+    "owner": { "type": "string" },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "lastReviewed": { "type": "string", "format": "date" },
+        "reviewCycleDays": { "type": "integer", "minimum": 7, "maximum": 365 }
+      }
+    },
+    "license": { "type": "string" },
+    "links": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["rel", "href"],
+        "properties": {
+          "rel": {
+            "type": "string",
+            "enum": ["docs", "adr", "source", "issue", "playbook"]
+          },
+          "href": { "type": "string" }
+        },
+        "additionalProperties": false
+      },
+      "uniqueItems": true
+    },
+    "i18n": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "summary": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

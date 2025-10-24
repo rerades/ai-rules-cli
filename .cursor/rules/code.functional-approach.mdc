@@ -1,0 +1,440 @@
+---
+id: code.functional-approach.guidelines
+version: 1.0.0
+title: "Functional Programming Guidelines"
+summary: "Rules for writing functional code using pure functions, composition, ADTs, and functional programming principles."
+category: code
+scope: ["global", "repo", "package", "workspace", "app", "component"]
+language: "javascript"
+frameworks: ["none"]
+tooling: ["crocks", "ramda", "lodash/fp"]
+lifecycle: "enforced"
+maturity: "stable"
+stability: "locked"
+audience: ["frontend", "backend", "fullstack"]
+severity: "medium"
+requires: []
+conflicts: []
+supersedes: []
+bundles: ["code/functional-programming", "code/quality"]
+files: ["**/*.js", "**/*.ts", "**/*.jsx", "**/*.tsx"]
+enforcement: { lint: "warn", ci: "allow", scaffold: "none" }
+order: 15
+inputs:
+  preferPureFunctions:
+    {
+      type: "boolean",
+      default: true,
+      description: "Prefer pure functions over impure functions",
+    }
+  useFunctionalLibraries:
+    {
+      type: "boolean",
+      default: true,
+      description: "Use functional programming libraries like crocks or ramda",
+    }
+  avoidClasses:
+    {
+      type: "boolean",
+      default: true,
+      description: "Prefer functions over classes for data containers",
+    }
+tags:
+  ["topic:functional-programming", "topic:code-quality", "topic:composition"]
+owner: "code-quality@tu-org.com"
+review: { lastReviewed: "2025-01-20", reviewCycleDays: 180 }
+license: "MIT"
+links:
+  - {
+      rel: "docs",
+      href: "https://en.wikipedia.org/wiki/Functional_programming",
+    }
+  - {
+      rel: "source",
+      href: "https://git/org/cursor-rules/rules/code.functional-approach.mdc",
+    }
+i18n:
+  en:
+    {
+      title: "Functional Programming Guidelines",
+      summary: "Rules for writing functional code using pure functions and composition.",
+    }
+---
+
+You are an expert functional programmer. Follow these principles when writing code:
+
+## Core Principles
+
+### ✅ DO: Use Pure Functions
+
+- Functions should always return the same output for the same input
+- No side effects (no console.log, file I/O, network calls inside pure functions)
+- Prefer function composition over imperative code
+
+```javascript
+// ✅ Good: Pure function
+const add = (a, b) => a + b;
+const multiply = (x, y) => x * y;
+const calculateTotal = (price, tax) => add(price, multiply(price, tax));
+
+// ❌ Bad: Impure function with side effects
+const calculateTotal = (price, tax) => {
+  console.log("Calculating..."); // Side effect!
+  return price + price * tax;
+};
+```
+
+### ✅ DO: Use Function Composition
+
+- Compose small, focused functions into larger ones
+- Use `pipe` and `compose` from crocks or ramda
+
+```javascript
+import { pipe, map, filter, reduce } from "crocks";
+
+// ✅ Good: Function composition
+const processData = pipe(
+  filter((x) => x > 0),
+  map((x) => x * 2),
+  reduce((acc, x) => acc + x, 0)
+);
+
+// ❌ Bad: Imperative approach
+const processData = (data) => {
+  let result = 0;
+  for (let i = 0; i < data.length; i++) {
+    if (data[i] > 0) {
+      result += data[i] * 2;
+    }
+  }
+  return result;
+};
+```
+
+### ✅ DO: Use Currying and Partial Application
+
+- Create reusable functions through currying
+- Use `curry` from crocks for automatic currying
+
+```javascript
+import { curry } from "crocks";
+
+// ✅ Good: Curried function
+const add = curry((a, b) => a + b);
+const add5 = add(5);
+const result = add5(3); // 8
+
+// ✅ Good: Partial application
+const multiply = curry((a, b, c) => a * b * c);
+const double = multiply(2);
+const triple = multiply(3);
+```
+
+### ✅ DO: Use Algebraic Data Types (ADTs)
+
+- Use `Maybe`, `Either`, `Result` from crocks for safe operations
+- Handle errors functionally without try/catch
+
+```javascript
+import { Maybe, Either, Result } from "crocks";
+
+// ✅ Good: Using Maybe for safe operations
+const safeDivide = (a, b) => (b === 0 ? Maybe.Nothing() : Maybe.Just(a / b));
+
+const result = safeDivide(10, 2)
+  .map((x) => x * 2)
+  .option(0); // Default value if Nothing
+
+// ✅ Good: Using Either for error handling
+const parseNumber = (str) => {
+  const num = Number(str);
+  return isNaN(num) ? Either.Left("Invalid number") : Either.Right(num);
+};
+
+// ❌ Bad: Using try/catch
+const parseNumber = (str) => {
+  try {
+    return Number(str);
+  } catch (error) {
+    return null; // Loses error information
+  }
+};
+```
+
+### ✅ DO: Use Functors and Monads
+
+- Use `map`, `chain`, `ap` for functional transformations
+- Prefer `chain` over nested `map` calls
+
+```javascript
+import { Maybe } from "crocks";
+
+// ✅ Good: Using chain for nested operations
+const getUser = (id) => Maybe.Just({ id, name: "John" });
+const getProfile = (user) => Maybe.Just({ ...user, age: 30 });
+
+const result = getUser(1)
+  .chain(getProfile)
+  .map((profile) => profile.name)
+  .option("Unknown");
+
+// ❌ Bad: Nested map calls
+const result = getUser(1)
+  .map((user) => getProfile(user).map((profile) => profile.name))
+  .option("Unknown");
+```
+
+### ✅ DO: Use Monoids for Combining Values
+
+- Use `Sum`, `Product`, `All`, `Any` from crocks
+- Combine values functionally
+
+```javascript
+import { Sum, Product, All } from "crocks";
+
+// ✅ Good: Using monoids
+const numbers = [1, 2, 3, 4, 5];
+const sum = numbers
+  .map(Sum)
+  .reduce((a, b) => a.concat(b), Sum.empty())
+  .valueOf();
+const product = numbers
+  .map(Product)
+  .reduce((a, b) => a.concat(b), Product.empty())
+  .valueOf();
+
+// ❌ Bad: Imperative approach
+let sum = 0;
+let product = 1;
+for (let num of numbers) {
+  sum += num;
+  product *= num;
+}
+```
+
+## Code Structure Guidelines
+
+### ✅ DO: Prefer Functions Over Classes
+
+- Use factory functions instead of constructors
+- Use closures for encapsulation instead of private fields
+
+```javascript
+// ✅ Good: Factory function with closure
+const createCodeReviewer = (options = {}) => {
+  const model = options.model || "gpt-4o-mini";
+  const maxTokens = options.maxTokens || 2000;
+
+  const detectLanguage = (extension) => {
+    const languages = {
+      ".js": "JavaScript",
+      ".ts": "TypeScript",
+      ".py": "Python",
+    };
+    return languages[extension] || "Unknown";
+  };
+
+  const analyzeCode = async (code, filename, language) => {
+    // Pure analysis logic
+  };
+
+  return {
+    detectLanguage,
+    analyzeCode,
+    reviewFile: async (filename) => {
+      // Composition of pure functions
+    },
+  };
+};
+
+// ❌ Bad: Class-based approach
+class CodeReviewer {
+  constructor(options = {}) {
+    this.model = options.model || "gpt-4o-mini";
+    // ...
+  }
+}
+```
+
+### ✅ DO: Use Point-Free Style
+
+- Eliminate unnecessary parameters
+- Use `flip`, `constant`, `identity` from crocks
+
+```javascript
+import { flip, constant, identity } from "crocks";
+
+// ✅ Good: Point-free style
+const processItems = pipe(
+  map(flip(divide)(2)),
+  filter(gt(0)),
+  map(constant("processed"))
+);
+
+// ❌ Bad: Verbose with unnecessary parameters
+const processItems = (items) => {
+  return items
+    .map((item) => divide(2, item))
+    .filter((item) => item > 0)
+    .map((item) => "processed");
+};
+```
+
+### ✅ DO: Use Predicate Functions
+
+- Use `isString`, `isNumber`, `isArray` from crocks
+- Create reusable predicate functions
+
+```javascript
+import { isString, isNumber, and, or } from "crocks";
+
+// ✅ Good: Using predicates
+const isValidInput = and(isString, (x) => x.length > 0);
+const isNumericString = and(isString, (x) => !isNaN(Number(x)));
+
+// ❌ Bad: Inline type checking
+const processInput = (input) => {
+  if (typeof input === "string" && input.length > 0) {
+    // process
+  }
+};
+```
+
+## Error Handling
+
+### ✅ DO: Use Either/Result for Error Handling
+
+- Never use try/catch in pure functions
+- Use `Result` from crocks for operations that can fail
+
+```javascript
+import { Result } from "crocks";
+
+// ✅ Good: Functional error handling
+const safeReadFile = (filename) =>
+  Result.try(() => fs.readFileSync(filename, "utf8"))
+    .map((content) => ({ filename, content }))
+    .mapRej((error) => `Failed to read ${filename}: ${error.message}`);
+
+// ❌ Bad: Try/catch approach
+const readFile = (filename) => {
+  try {
+    const content = fs.readFileSync(filename, "utf8");
+    return { filename, content };
+  } catch (error) {
+    throw new Error(`Failed to read ${filename}: ${error.message}`);
+  }
+};
+```
+
+## Data Transformation
+
+### ✅ DO: Use Functional Data Transformations
+
+- Use `map`, `filter`, `reduce` from crocks
+- Prefer `reduce` over imperative loops
+
+```javascript
+import { map, filter, reduce, pipe } from "crocks";
+
+// ✅ Good: Functional transformations
+const processUsers = pipe(
+  filter((user) => user.active),
+  map((user) => ({
+    ...user,
+    displayName: `${user.firstName} ${user.lastName}`,
+  })),
+  reduce((acc, user) => ({ ...acc, [user.id]: user }), {})
+);
+
+// ❌ Bad: Imperative approach
+const processUsers = (users) => {
+  const result = {};
+  for (let user of users) {
+    if (user.active) {
+      user.displayName = `${user.firstName} ${user.lastName}`;
+      result[user.id] = user;
+    }
+  }
+  return result;
+};
+```
+
+## Testing
+
+### ✅ DO: Write Testable Pure Functions
+
+- Pure functions are easy to test
+- Use property-based testing when possible
+
+```javascript
+// ✅ Good: Testable pure function
+const calculateTax = (amount, rate) => amount * rate;
+
+// Easy to test:
+// expect(calculateTax(100, 0.1)).toBe(10);
+// expect(calculateTax(0, 0.1)).toBe(0);
+```
+
+## Common Patterns to Avoid
+
+### ❌ DON'T: Use Classes for Data Containers
+
+```javascript
+// ❌ Bad: Class for data
+class User {
+  constructor(name, email) {
+    this.name = name;
+    this.email = email;
+  }
+}
+
+// ✅ Good: Plain objects or ADTs
+const createUser = (name, email) => ({ name, email });
+// Or use crocks' Pair, Tuple, etc.
+```
+
+### ❌ DON'T: Use Mutable State
+
+```javascript
+// ❌ Bad: Mutable state
+let counter = 0;
+const increment = () => ++counter;
+
+// ✅ Good: Immutable approach
+const increment = (counter) => counter + 1;
+const newCounter = increment(0);
+```
+
+### ❌ DON'T: Use Imperative Loops
+
+```javascript
+// ❌ Bad: Imperative loop
+const doubleNumbers = (numbers) => {
+  const result = [];
+  for (let i = 0; i < numbers.length; i++) {
+    result.push(numbers[i] * 2);
+  }
+  return result;
+};
+
+// ✅ Good: Functional approach
+const doubleNumbers = map(multiply(2));
+```
+
+## Key Libraries to Use
+
+- **crocks**: Algebraic Data Types, function utilities
+- **ramda**: Functional programming utilities
+- **lodash/fp**: Functional version of lodash
+
+## Remember
+
+1. **Functions over Classes**: Always prefer functions
+2. **Pure over Impure**: Minimize side effects
+3. **Composition over Inheritance**: Build complex behavior from simple functions
+4. **Immutable over Mutable**: Never mutate data
+5. **Declarative over Imperative**: Describe what you want, not how to do it
+6. **ADTs over Exceptions**: Use Maybe, Either, Result for error handling
+7. **Currying for Reusability**: Create specialized functions from general ones
+8. **Monoids for Combining**: Use mathematical structures for combining values

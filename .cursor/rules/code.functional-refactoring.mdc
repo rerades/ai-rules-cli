@@ -1,0 +1,499 @@
+---
+id: code.functional-refactoring.patterns
+version: 1.0.0
+title: "Functional Refactoring Patterns"
+summary: "Patterns for transforming imperative and legacy code into cleaner, more declarative, composable functional structures."
+category: code
+scope: ["global", "repo", "package", "workspace", "app", "component"]
+language: "javascript"
+frameworks: ["none"]
+tooling: ["none"]
+lifecycle: "enforced"
+maturity: "stable"
+stability: "locked"
+audience: ["frontend", "backend", "fullstack"]
+severity: "medium"
+requires: []
+conflicts: []
+supersedes: []
+bundles: ["code/functional-programming", "code/refactoring"]
+files: ["**/*.js", "**/*.ts", "**/*.jsx", "**/*.tsx"]
+enforcement: { lint: "warn", ci: "allow", scaffold: "none" }
+order: 16
+inputs:
+  enableRefactoringPatterns:
+    {
+      type: "boolean",
+      default: true,
+      description: "Enable functional refactoring patterns",
+    }
+  preferImmutableTransformations:
+    {
+      type: "boolean",
+      default: true,
+      description: "Prefer immutable transformations over mutable state",
+    }
+  isolateSideEffects:
+    {
+      type: "boolean",
+      default: true,
+      description: "Isolate side effects from pure business logic",
+    }
+tags:
+  [
+    "topic:functional-programming",
+    "topic:refactoring",
+    "topic:patterns",
+    "topic:code-quality",
+  ]
+owner: "code-quality@tu-org.com"
+review: { lastReviewed: "2025-01-20", reviewCycleDays: 180 }
+license: "MIT"
+links:
+  - { rel: "docs", href: "https://en.wikipedia.org/wiki/Refactoring" }
+  - {
+      rel: "related",
+      href: "code.functional-approach.guidelines",
+      title: "Functional Programming Guidelines",
+    }
+---
+
+# Functional Refactoring Patterns
+
+This rule groups common refactoring strategies to evolve imperative or legacy code into cleaner, more declarative, composable functional structures.
+
+## ✅ 1. Replace Mutable State with Immutable Transformations
+
+Refactor imperative state updates (e.g., `push`, `splice`, `let`) into immutable transformations like `map`, `filter`, `reduce`.
+
+### ❌ Imperative
+
+```js
+let items = [];
+for (let i = 0; i < list.length; i++) {
+  if (list[i].active) items.push(list[i].value);
+}
+```
+
+### ✅ Functional
+
+```js
+const items = list.filter((x) => x.active).map((x) => x.value);
+```
+
+### Prompt Template
+
+```txt
+Rewrite this logic to avoid mutation. Use pure transformations such as map, filter, reduce.
+```
+
+### Additional Examples
+
+```js
+// ❌ Imperative: Mutable array operations
+let result = [];
+for (const item of data) {
+  if (item.status === "active") {
+    result.push({
+      id: item.id,
+      name: item.name.toUpperCase(),
+    });
+  }
+}
+
+// ✅ Functional: Immutable transformations
+const result = data
+  .filter((item) => item.status === "active")
+  .map((item) => ({
+    id: item.id,
+    name: item.name.toUpperCase(),
+  }));
+```
+
+---
+
+## ✅ 2. Isolate Side Effects
+
+Side effects (e.g., `fetch`, `console`, DOM access) should not be mixed with core business logic.
+
+### ❌ Mixed Logic
+
+```ts
+function getUserName(id) {
+  const res = fetch(`/api/${id}`);
+  return res.json().name;
+}
+```
+
+### ✅ Separated
+
+```ts
+function parseUser(data) {
+  return data.name;
+}
+
+async function fetchUser(id) {
+  const res = await fetch(`/api/${id}`);
+  const data = await res.json();
+  return parseUser(data);
+}
+```
+
+### Prompt Template
+
+```txt
+Identify and isolate side effects from the rest of this function. Separate logic into pure functions and impure wrappers.
+```
+
+### Additional Examples
+
+```js
+// ❌ Mixed: Side effects with business logic
+function processUserData(userId) {
+  const user = fetch(`/api/users/${userId}`).then((res) => res.json());
+  const processed = user.then((user) => {
+    console.log("Processing user:", user.name); // Side effect
+    return {
+      ...user,
+      displayName: `${user.firstName} ${user.lastName}`,
+      isActive: user.status === "active",
+    };
+  });
+  return processed;
+}
+
+// ✅ Separated: Pure business logic + side effect wrapper
+const createDisplayName = (user) => `${user.firstName} ${user.lastName}`;
+const isUserActive = (user) => user.status === "active";
+const processUser = (user) => ({
+  ...user,
+  displayName: createDisplayName(user),
+  isActive: isUserActive(user),
+});
+
+async function processUserData(userId) {
+  const response = await fetch(`/api/users/${userId}`);
+  const user = await response.json();
+  console.log("Processing user:", user.name); // Side effect isolated
+  return processUser(user);
+}
+```
+
+---
+
+## ✅ 3. Eliminate Shared Mutable State
+
+Avoid relying on external closures or shared mutables — they break purity and cause hidden dependencies.
+
+### ❌ Anti-pattern
+
+```js
+let counter = 0;
+function increment() {
+  counter++;
+}
+```
+
+### ✅ Pure Version
+
+```js
+function increment(n) {
+  return n + 1;
+}
+```
+
+### Prompt Template
+
+```txt
+Remove shared mutable state from this code. Replace it with explicit parameters and return values.
+```
+
+### Additional Examples
+
+```js
+// ❌ Shared mutable state
+let cache = {};
+function getCachedData(key) {
+  if (cache[key]) {
+    return cache[key];
+  }
+  const data = expensiveOperation(key);
+  cache[key] = data;
+  return data;
+}
+
+// ✅ Pure with explicit state
+function getCachedData(key, cache = {}) {
+  if (cache[key]) {
+    return { data: cache[key], cache };
+  }
+  const data = expensiveOperation(key);
+  return { data, cache: { ...cache, [key]: data } };
+}
+
+// Usage
+const { data, cache: newCache } = getCachedData("user1", currentCache);
+```
+
+---
+
+## ✅ 4. Collapse Nested Control Flow
+
+Unnest `if`, `for`, or `switch` structures using declarative functional methods.
+
+### ❌ Nested
+
+```js
+let result = [];
+for (const x of data) {
+  if (x.active) {
+    for (const y of x.items) {
+      if (y.visible) {
+        result.push(y.id);
+      }
+    }
+  }
+}
+```
+
+### ✅ Flattened
+
+```js
+const result = data
+  .filter((x) => x.active)
+  .flatMap((x) => x.items.filter((y) => y.visible).map((y) => y.id));
+```
+
+### Prompt Template
+
+```txt
+Collapse nested control structures into declarative transformations using functional methods.
+```
+
+### Additional Examples
+
+```js
+// ❌ Nested control flow
+function getActiveUserEmails(users) {
+  const emails = [];
+  for (const user of users) {
+    if (user.isActive) {
+      for (const contact of user.contacts) {
+        if (contact.type === "email" && contact.verified) {
+          emails.push(contact.value);
+        }
+      }
+    }
+  }
+  return emails;
+}
+
+// ✅ Functional pipeline
+const getActiveUserEmails = (users) =>
+  users
+    .filter((user) => user.isActive)
+    .flatMap((user) =>
+      user.contacts
+        .filter((contact) => contact.type === "email" && contact.verified)
+        .map((contact) => contact.value)
+    );
+```
+
+---
+
+## ✅ 5. Refactor Monolithic Functions into Pipelines
+
+Split large logic blocks into small composable functions.
+
+### ❌ Monolithic
+
+```js
+function processUser(data) {
+  const user = JSON.parse(data);
+  const name = user.name.trim().toUpperCase();
+  return name.split(" ")[0];
+}
+```
+
+### ✅ Functional Pipeline
+
+```js
+const parse = JSON.parse;
+const formatName = (user) => user.name.trim().toUpperCase();
+const extractFirst = (name) => name.split(" ")[0];
+
+const processUser = (data) => extractFirst(formatName(parse(data)));
+```
+
+### Prompt Template
+
+```txt
+Break this function into smaller, pure steps that can be composed into a pipeline.
+```
+
+### Additional Examples
+
+```js
+// ❌ Monolithic function
+function calculateOrderTotal(order) {
+  const items = order.items;
+  let subtotal = 0;
+  for (const item of items) {
+    if (item.quantity > 0) {
+      subtotal += item.price * item.quantity;
+    }
+  }
+  const tax = subtotal * 0.08;
+  const shipping = subtotal > 100 ? 0 : 10;
+  const total = subtotal + tax + shipping;
+  return Math.round(total * 100) / 100;
+}
+
+// ✅ Functional pipeline
+const isValidItem = (item) => item.quantity > 0;
+const calculateItemTotal = (item) => item.price * item.quantity;
+const calculateSubtotal = (items) =>
+  items
+    .filter(isValidItem)
+    .map(calculateItemTotal)
+    .reduce((sum, total) => sum + total, 0);
+const calculateTax = (subtotal) => subtotal * 0.08;
+const calculateShipping = (subtotal) => (subtotal > 100 ? 0 : 10);
+const roundToCents = (amount) => Math.round(amount * 100) / 100;
+
+const calculateOrderTotal = (order) => {
+  const subtotal = calculateSubtotal(order.items);
+  const tax = calculateTax(subtotal);
+  const shipping = calculateShipping(subtotal);
+  return roundToCents(subtotal + tax + shipping);
+};
+```
+
+## Advanced Refactoring Patterns
+
+### ✅ 6. Extract Configuration Objects
+
+Replace multiple parameters with configuration objects for better composability.
+
+```js
+// ❌ Multiple parameters
+function createUser(name, email, age, isActive, role) {
+  return { name, email, age, isActive, role };
+}
+
+// ✅ Configuration object
+const createUser = (config) => ({ ...config });
+const withDefaults = (config) => ({
+  isActive: true,
+  role: "user",
+  ...config,
+});
+
+const user = createUser(
+  withDefaults({ name: "John", email: "john@example.com" })
+);
+```
+
+### ✅ 7. Use Function Composition for Complex Logic
+
+```js
+// ❌ Complex nested logic
+function validateAndTransformUser(user) {
+  if (user && user.email && user.email.includes("@")) {
+    const trimmed = user.email.trim().toLowerCase();
+    if (trimmed.length > 0) {
+      return { ...user, email: trimmed };
+    }
+  }
+  return null;
+}
+
+// ✅ Composed functions
+const isValidEmail = (email) => email && email.includes("@");
+const normalizeEmail = (email) => email.trim().toLowerCase();
+const isValidNormalized = (email) => email.length > 0;
+
+const validateAndTransformUser = (user) =>
+  user?.email && isValidEmail(user.email)
+    ? (() => {
+        const normalized = normalizeEmail(user.email);
+        return isValidNormalized(normalized)
+          ? { ...user, email: normalized }
+          : null;
+      })()
+    : null;
+```
+
+## Testing Refactored Code
+
+### ✅ Test Pure Functions
+
+```js
+// Easy to test pure functions
+describe("calculateSubtotal", () => {
+  it("should calculate subtotal for valid items", () => {
+    const items = [
+      { price: 10, quantity: 2 },
+      { price: 5, quantity: 1 },
+    ];
+    expect(calculateSubtotal(items)).toBe(25);
+  });
+
+  it("should ignore items with zero quantity", () => {
+    const items = [
+      { price: 10, quantity: 0 },
+      { price: 5, quantity: 1 },
+    ];
+    expect(calculateSubtotal(items)).toBe(5);
+  });
+});
+```
+
+## Common Anti-patterns to Avoid
+
+### ❌ Don't: Over-abstract Simple Logic
+
+```js
+// ❌ Over-abstracted
+const add = (a) => (b) => a + b;
+const result = add(5)(3);
+
+// ✅ Simple is better
+const add = (a, b) => a + b;
+const result = add(5, 3);
+```
+
+### ❌ Don't: Create Unnecessary Complexity
+
+```js
+// ❌ Unnecessarily complex
+const processData = pipe(
+  map((x) => x * 2),
+  filter((x) => x > 10),
+  reduce((acc, x) => acc + x, 0)
+);
+
+// ✅ Sometimes simple is better
+const processData = (data) => {
+  return data
+    .map((x) => x * 2)
+    .filter((x) => x > 10)
+    .reduce((acc, x) => acc + x, 0);
+};
+```
+
+## Key Principles
+
+1. **Start Simple**: Begin with basic transformations before complex compositions
+2. **Test Each Step**: Ensure each refactored function works correctly
+3. **Preserve Behavior**: Maintain the same input/output behavior
+4. **Incremental Refactoring**: Refactor one pattern at a time
+5. **Measure Impact**: Verify performance and readability improvements
+
+## Remember
+
+- **Refactoring is iterative**: Don't try to fix everything at once
+- **Preserve functionality**: The refactored code should behave identically
+- **Test thoroughly**: Pure functions are easier to test
+- **Consider context**: Some imperative code might be more readable
+- **Balance complexity**: Don't over-engineer simple solutions
