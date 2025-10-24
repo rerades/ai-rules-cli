@@ -69,7 +69,7 @@ export const createRuleSelectionPrompt = async (
     name: formatRule({
       id: rule.metadata.id,
       title: rule.metadata.title,
-      summary: rule.metadata.summary || "",
+      description: rule.metadata.description || "",
       category: rule.metadata.category,
       maturity: rule.metadata.maturity || "",
     }),

@@ -155,7 +155,7 @@ export const getAvailableRuleIds = async (
 };
 
 /**
- * Searches rules by text in title or summary
+ * Searches rules by text in title or description
  */
 export const searchRules = async (
   config: CLIConfig,
@@ -166,9 +166,9 @@ export const searchRules = async (
 
   return allRules.filter((rule) => {
     const title = rule.metadata.title.toLowerCase();
-    const summary = rule.metadata.summary?.toLowerCase() || "";
+    const description = rule.metadata.description?.toLowerCase() || "";
 
-    return title.includes(lowerQuery) || summary.includes(lowerQuery);
+    return title.includes(lowerQuery) || description.includes(lowerQuery);
   });
 };
 
