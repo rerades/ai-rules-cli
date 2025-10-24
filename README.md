@@ -88,7 +88,7 @@ Options:
 
 The CLI uses the following default configuration:
 
-- **Repository Path**: `/Users/rerades/_DEV/AI/_RERADES/ai-rules`
+- **Repository Path**: `~/ai-rules`
 - **Rules Directory**: `rules`
 - **Schema File**: `mdc.schema.json`
 - **Output Directory**: `.cursor/rules`
