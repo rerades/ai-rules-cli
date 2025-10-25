@@ -1,6 +1,6 @@
 # AI Rules CLI
 
-A professional CLI tool for managing Cursor AI rules with dependency resolution and conflict detection.
+A CLI tool for managing Cursor AI rules with dependency resolution and conflict detection.
 
 ## Features
 
@@ -8,7 +8,6 @@ A professional CLI tool for managing Cursor AI rules with dependency resolution 
 - **Dependency Resolution**: Automatically resolves rule dependencies
 - **Conflict Detection**: Identifies and helps resolve rule conflicts
 - **Schema Validation**: Validates rules against the MDC schema
-- **Professional UI**: Colorful output with spinners and progress indicators
 - **Multiple Commands**: List, validate, check, and generate rules
 - **TypeScript**: Fully typed with strict mode
 
@@ -34,6 +33,23 @@ cd ai-rules-cli
 npm install
 npm run build
 npm link
+```
+
+## Configuration
+
+The CLI uses the following default configuration:
+
+- **Repository Path**: `~/ai-rules` This is were your rules are saved
+- **Rules Directory**: `rules`
+- **Schema File**: `mdc.schema.json`
+- **Output Directory**: `.cursor/rules`
+
+You can override these settings using environment variables:
+
+```bash
+export AI_RULES_REPO_PATH="/path/to/your/rules/repo"
+export AI_RULES_OUTPUT_PATH="/path/to/output"
+export AI_RULES_VERBOSE=true
 ```
 
 ## Usage
@@ -95,23 +111,6 @@ Options:
 - `-o, --output <path>` - Output directory path
 - `--dry-run` - Simulate without creating files
 - `-v, --verbose` - Enable verbose output
-
-## Configuration
-
-The CLI uses the following default configuration:
-
-- **Repository Path**: `~/ai-rules`
-- **Rules Directory**: `rules`
-- **Schema File**: `mdc.schema.json`
-- **Output Directory**: `.cursor/rules`
-
-You can override these settings using environment variables:
-
-```bash
-export AI_RULES_REPO_PATH="/path/to/your/rules/repo"
-export AI_RULES_OUTPUT_PATH="/path/to/output"
-export AI_RULES_VERBOSE=true
-```
 
 ## Rule Schema
 
