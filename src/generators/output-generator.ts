@@ -146,8 +146,11 @@ const createFrontmatter = (metadata: RuleContent["metadata"]): string => {
     title: metadata.title,
   };
 
-  // Add optional fields
+  // Add optional fields - including the missing ones
   if (metadata.description) frontmatter.description = metadata.description;
+  if (metadata.alwaysApply !== undefined)
+    frontmatter.alwaysApply = metadata.alwaysApply;
+  if (metadata.globs) frontmatter.globs = metadata.globs;
   if (metadata.category) frontmatter.category = metadata.category;
   if (metadata.scope) frontmatter.scope = metadata.scope;
   if (metadata.language) frontmatter.language = metadata.language;
@@ -173,38 +176,110 @@ const createFrontmatter = (metadata: RuleContent["metadata"]): string => {
   if (metadata.links) frontmatter.links = metadata.links;
   if (metadata.i18n) frontmatter.i18n = metadata.i18n;
 
-  // Convert to YAML format
+  // Convert to YAML format with proper handling of complex objects
   const yamlLines = ["---"];
 
   for (const [key, value] of Object.entries(frontmatter)) {
     if (value !== undefined && value !== null) {
-      if (typeof value === "string") {
-        yamlLines.push(`${key}: "${value}"`);
-      } else if (Array.isArray(value)) {
-        if (value.length === 0) {
-          yamlLines.push(`${key}: []`);
-        } else {
-          yamlLines.push(`${key}:`);
-          for (const item of value) {
-            yamlLines.push(`  - "${item}"`);
-          }
-        }
-      } else if (typeof value === "object") {
-        yamlLines.push(`${key}:`);
-        for (const [subKey, subValue] of Object.entries(
-          value as Record<string, unknown>
-        )) {
-          yamlLines.push(`  ${subKey}: "${subValue}"`);
-        }
-      } else {
-        yamlLines.push(`${key}: ${value}`);
-      }
+      yamlLines.push(...serializeYamlValue(key, value, 0));
     }
   }
 
   yamlLines.push("---");
 
   return yamlLines.join("\n");
+};
+
+/**
+ * Serializes a YAML value with proper indentation and object handling
+ */
+const serializeYamlValue = (
+  key: string,
+  value: unknown,
+  indent: number
+): string[] => {
+  const indentStr = "  ".repeat(indent);
+
+  if (typeof value === "string") {
+    return [`${indentStr}${key}: "${value}"`];
+  } else if (typeof value === "number" || typeof value === "boolean") {
+    return [`${indentStr}${key}: ${value}`];
+  } else if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return [`${indentStr}${key}: []`];
+    } else {
+      const lines = [`${indentStr}${key}:`];
+      for (const item of value) {
+        if (typeof item === "string") {
+          lines.push(`${indentStr}  - "${item}"`);
+        } else if (typeof item === "object" && item !== null) {
+          lines.push(`${indentStr}  -`);
+          lines.push(
+            ...serializeObject(item as Record<string, unknown>, indent + 2)
+          );
+        } else {
+          lines.push(`${indentStr}  - ${item}`);
+        }
+      }
+      return lines;
+    }
+  } else if (typeof value === "object" && value !== null) {
+    const lines = [`${indentStr}${key}:`];
+    lines.push(
+      ...serializeObject(value as Record<string, unknown>, indent + 1)
+    );
+    return lines;
+  } else {
+    return [`${indentStr}${key}: ${value}`];
+  }
+};
+
+/**
+ * Serializes an object with proper YAML formatting
+ */
+const serializeObject = (
+  obj: Record<string, unknown>,
+  indent: number
+): string[] => {
+  const indentStr = "  ".repeat(indent);
+  const lines: string[] = [];
+
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined && value !== null) {
+      if (typeof value === "string") {
+        lines.push(`${indentStr}${key}: "${value}"`);
+      } else if (typeof value === "number" || typeof value === "boolean") {
+        lines.push(`${indentStr}${key}: ${value}`);
+      } else if (Array.isArray(value)) {
+        if (value.length === 0) {
+          lines.push(`${indentStr}${key}: []`);
+        } else {
+          lines.push(`${indentStr}${key}:`);
+          for (const item of value) {
+            if (typeof item === "string") {
+              lines.push(`${indentStr}  - "${item}"`);
+            } else if (typeof item === "object" && item !== null) {
+              lines.push(`${indentStr}  -`);
+              lines.push(
+                ...serializeObject(item as Record<string, unknown>, indent + 2)
+              );
+            } else {
+              lines.push(`${indentStr}  - ${item}`);
+            }
+          }
+        }
+      } else if (typeof value === "object" && value !== null) {
+        lines.push(`${indentStr}${key}:`);
+        lines.push(
+          ...serializeObject(value as Record<string, unknown>, indent + 1)
+        );
+      } else {
+        lines.push(`${indentStr}${key}: ${value}`);
+      }
+    }
+  }
+
+  return lines;
 };
 
 /**

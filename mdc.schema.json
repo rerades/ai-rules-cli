@@ -1,6 +1,6 @@
 {
   "$id": "https://example.org/schemas/mdc-rule.schema.json",
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$schema": "http://json-schema.org/draft-07/schema",
   "title": "Cursor Rule Metadata",
   "type": "object",
   "required": ["id", "version", "title", "category"],
@@ -22,6 +22,7 @@
     "category": {
       "type": "string",
       "enum": [
+        "code",
         "foundation",
         "language",
         "framework",
@@ -33,7 +34,6 @@
         "architecture",
         "documentation",
         "templates",
-        "typescript",
         "testing"
       ]
     },
@@ -60,8 +60,6 @@
     "language": {
       "type": "string",
       "enum": [
-        "js",
-        "ts",
         "python",
         "java",
         "go",
@@ -69,27 +67,20 @@
         "html",
         "css",
         "shell",
-        "none"
+        "none",
+        "javascript",
+        "node",
+        "typescript",
+        "markdown"
       ]
     },
     "frameworks": {
       "type": "array",
       "items": {
         "type": "string",
-        "enum": [
-          "react",
-          "astro",
-          "svelte",
-          "vue",
-          "angular",
-          "lit",
-          "next",
-          "remix",
-          "node",
-          "express",
-          "fastify",
-          "none"
-        ]
+        "pattern": "^[a-zA-Z0-9@/._-]+$",
+        "minLength": 1,
+        "maxLength": 50
       },
       "uniqueItems": true
     },
@@ -97,34 +88,11 @@
       "type": "array",
       "items": {
         "type": "string",
-        "enum": [
-          "eslint",
-          "prettier",
-          "vitest",
-          "jest",
-          "playwright",
-          "wdio",
-          "cypress",
-          "lighthouse",
-          "axe",
-          "pa11y",
-          "msw",
-          "pact",
-          "snyk",
-          "osv",
-          "husky",
-          "lint-staged",
-          "turbo",
-          "vite",
-          "webpack",
-          "rollup",
-          "parcel",
-          "pnpm",
-          "npm",
-          "yarn"
-        ]
+        "pattern": "^[a-zA-Z0-9@/._-]+$",
+        "minLength": 1,
+        "maxLength": 50
       },
-      "uniqueItems": true
+      "uniqueItems": false
     },
     "lifecycle": {
       "type": "string",
@@ -150,7 +118,11 @@
           "a11y",
           "sec",
           "devops",
-          "docs"
+          "technical-writer",
+          "performance-engineer",
+          "ux",
+          "architect",
+          "tech-lead"
         ]
       },
       "uniqueItems": true
@@ -189,8 +161,11 @@
       "additionalProperties": false,
       "properties": {
         "lint": { "type": "string", "enum": ["off", "warn", "error"] },
-        "ci": { "type": "string", "enum": ["allow", "block"] },
-        "scaffold": { "type": "string", "enum": ["none", "add", "update"] }
+        "ci": { "type": "string", "enum": ["allow", "block", "required"] },
+        "scaffold": {
+          "type": "string",
+          "enum": ["none", "add", "update", "required", "suggest"]
+        }
       }
     },
     "order": { "type": "integer", "minimum": 0, "maximum": 1000 },
@@ -237,11 +212,13 @@
         "properties": {
           "rel": {
             "type": "string",
-            "enum": ["docs", "adr", "source", "issue", "playbook"]
+            "enum": ["docs", "adr", "source", "issue", "playbook", "related"]
           },
-          "href": { "type": "string" }
+          "href": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string" }
         },
-        "additionalProperties": false
+        "additionalProperties": true
       },
       "uniqueItems": true
     },
