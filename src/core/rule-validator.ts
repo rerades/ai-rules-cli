@@ -6,9 +6,9 @@
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
 import { readFileSync } from "fs";
+import { join } from "path";
 import type { RuleMetadata, ValidationResult } from "../types/rule.types";
 import type { CLIConfig } from "../types/config.types";
-import { getSchemaPath } from "./config";
 
 // AJV instance for validation
 let ajvInstance: Ajv | null = null;
@@ -16,7 +16,7 @@ let ajvInstance: Ajv | null = null;
 /**
  * Initializes the AJV validator with the schema
  */
-const initializeValidator = (config: CLIConfig): Ajv => {
+const initializeValidator = (): Ajv => {
   if (ajvInstance) {
     return ajvInstance;
   }
@@ -24,13 +24,12 @@ const initializeValidator = (config: CLIConfig): Ajv => {
   const ajv = new Ajv({
     allErrors: true,
     verbose: true,
-    strict: false, // Allow unknown formats and references
   });
 
   addFormats(ajv);
 
-  // Load and compile the schema
-  const schemaPath = getSchemaPath(config);
+  // Load and compile the schema from the CLI directory
+  const schemaPath = join(__dirname, "../../mdc.schema.json");
   const schema = JSON.parse(readFileSync(schemaPath, "utf8"));
 
   ajv.addSchema(schema, "mdc-rule");
@@ -44,10 +43,10 @@ const initializeValidator = (config: CLIConfig): Ajv => {
  */
 export const validateRule = (
   rule: RuleMetadata,
-  config: CLIConfig
+  _config: CLIConfig
 ): ValidationResult => {
   try {
-    const ajv = initializeValidator(config);
+    const ajv = initializeValidator();
     const validate = ajv.getSchema("mdc-rule");
 
     if (!validate) {
