@@ -5,7 +5,7 @@
 
 import { readFile, writeFile, mkdir, stat, readdir, unlink } from "fs/promises";
 import { existsSync } from "fs";
-import { join, dirname, extname, basename } from "path";
+import { join, dirname, extname, basename, isAbsolute } from "path";
 import { homedir } from "os";
 import type { Logger } from "./logger";
 
@@ -29,7 +29,7 @@ export const resolvePath = (path: string): string => {
   // First expand tilde if present
   const expandedPath = expandTilde(path);
 
-  if (expandedPath.startsWith("/")) {
+  if (isAbsolute(expandedPath)) {
     return expandedPath;
   }
   return join(process.cwd(), expandedPath);
