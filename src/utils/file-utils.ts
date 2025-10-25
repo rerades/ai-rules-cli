@@ -6,7 +6,34 @@
 import { readFile, writeFile, mkdir, stat, readdir, unlink } from "fs/promises";
 import { existsSync } from "fs";
 import { join, dirname, extname, basename } from "path";
+import { homedir } from "os";
 import type { Logger } from "./logger";
+
+/**
+ * Expands tilde (~) to home directory
+ */
+export const expandTilde = (path: string): string => {
+  if (path.startsWith("~/")) {
+    return join(homedir(), path.slice(2));
+  }
+  if (path === "~") {
+    return homedir();
+  }
+  return path;
+};
+
+/**
+ * Resolves a path to absolute, expanding tilde if present
+ */
+export const resolvePath = (path: string): string => {
+  // First expand tilde if present
+  const expandedPath = expandTilde(path);
+
+  if (expandedPath.startsWith("/")) {
+    return expandedPath;
+  }
+  return join(process.cwd(), expandedPath);
+};
 
 /**
  * Safely reads a file
