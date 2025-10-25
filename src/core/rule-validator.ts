@@ -3,53 +3,89 @@
  * Validates rule metadata against mdc.schema.json
  */
 
-// Temporarily disabled imports to fix schema issues
-// import Ajv from "ajv";
-// import addFormats from "ajv-formats";
-// import { readFileSync } from "fs";
+import Ajv from "ajv";
+import addFormats from "ajv-formats";
+import { readFileSync } from "fs";
 import type { RuleMetadata, ValidationResult } from "../types/rule.types";
 import type { CLIConfig } from "../types/config.types";
-// import { getSchemaPath } from "./config";
+import { getSchemaPath } from "./config";
 
 // AJV instance for validation
-// let ajvInstance: Ajv | null = null;
+let ajvInstance: Ajv | null = null;
 
 /**
  * Initializes the AJV validator with the schema
  */
-// Temporarily disabled to fix schema issues
-// const initializeValidator = (config: CLIConfig): Ajv => {
-//   if (ajvInstance) {
-//     return ajvInstance;
-//   }
+const initializeValidator = (config: CLIConfig): Ajv => {
+  if (ajvInstance) {
+    return ajvInstance;
+  }
 
-//   const ajv = new Ajv({
-//     allErrors: true,
-//     verbose: true,
-//     strict: false, // Allow unknown formats and references
-//   });
+  const ajv = new Ajv({
+    allErrors: true,
+    verbose: true,
+    strict: false, // Allow unknown formats and references
+  });
 
-//   addFormats(ajv);
+  addFormats(ajv);
 
-//   // Load and compile the schema
-//   const schemaPath = getSchemaPath(config);
-//   const schema = JSON.parse(readFileSync(schemaPath, "utf8"));
+  // Load and compile the schema
+  const schemaPath = getSchemaPath(config);
+  const schema = JSON.parse(readFileSync(schemaPath, "utf8"));
 
-//   ajv.addSchema(schema, "mdc-rule");
-//   ajvInstance = ajv;
+  ajv.addSchema(schema, "mdc-rule");
+  ajvInstance = ajv;
 
-//   return ajv;
-// };
+  return ajv;
+};
 
 /**
  * Validates a single rule against the schema
  */
 export const validateRule = (
-  _rule: RuleMetadata,
-  _config: CLIConfig
+  rule: RuleMetadata,
+  config: CLIConfig
 ): ValidationResult => {
-  // Temporarily disable validation to fix the schema issue
-  return { isValid: true, errors: [], warnings: [] };
+  try {
+    const ajv = initializeValidator(config);
+    const validate = ajv.getSchema("mdc-rule");
+
+    if (!validate) {
+      return {
+        isValid: false,
+        errors: ["Schema not found: mdc-rule"],
+        warnings: [],
+      };
+    }
+
+    const isValid = validate(rule);
+
+    if (isValid) {
+      return { isValid: true, errors: [], warnings: [] };
+    }
+
+    const errors =
+      validate.errors?.map((error) => {
+        const path = error.instancePath || error.schemaPath || "";
+        return `${path}: ${error.message}`;
+      }) || [];
+
+    return {
+      isValid: false,
+      errors,
+      warnings: [],
+    };
+  } catch (error) {
+    return {
+      isValid: false,
+      errors: [
+        `Validation error: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+      ],
+      warnings: [],
+    };
+  }
 };
 
 /**

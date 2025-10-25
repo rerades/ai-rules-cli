@@ -6,6 +6,7 @@
 import { join } from "path";
 import type { CLIConfig } from "../types/config.types";
 import { DEFAULT_CONFIG } from "../types/config.types";
+import { resolvePath as resolvePathUtil } from "../utils/file-utils";
 
 /**
  * Creates a configuration object with resolved paths
@@ -16,7 +17,7 @@ export const createConfig = (overrides: Partial<CLIConfig> = {}): CLIConfig => {
   return {
     ...config,
     repository: {
-      path: resolvePath(config.repository.path),
+      path: resolvePathUtil(config.repository.path),
       rulesDirectory: config.repository.rulesDirectory,
       schemaPath: config.repository.schemaPath,
     },
@@ -29,16 +30,6 @@ export const createConfig = (overrides: Partial<CLIConfig> = {}): CLIConfig => {
       colors: config.ui.colors,
     },
   };
-};
-
-/**
- * Resolves a path to absolute if it's relative
- */
-const resolvePath = (path: string): string => {
-  if (path.startsWith("/") || path.startsWith("~")) {
-    return path;
-  }
-  return join(process.cwd(), path);
 };
 
 /**
