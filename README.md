@@ -1,10 +1,34 @@
-# AI Rules CLI
+<!-- Banner -->
+<p align="center">
+  <img src="./ai-rules-cli.png" alt="AI Rules CLI Banner" width="100%" />
+</p>
+<h1 align="center">AI Rules CLI</h1>
+<p align="center"><strong>Interactive rule generation with dependency and conflict resolution</strong></p>
 
-![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/rerades/ai-rules-cli?utm_source=oss&utm_medium=github&utm_campaign=rerades%2Fai-rules-cli&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
+<p align="center">
+  <a href="https://github.com/rerades/ai-rules">Demo Rules Repository</a> •
+  <a href="#Features">Features</a> •
+  <a href="#Installation">Installation</a> •
+  <a href="#Configuration">Configuration</a> •
+  <a href="#Usage">Usage</a> •
+  <a href="#Rule Schema">Rule Schema</a> •
+  <a href="#Output Structure">Output Structure</a> •
+  <a href="#Development">Development</a> •
+  <a href="#Architecture">Architecture</a> •
+  <a href="#Error Handling">Error Handling</a>
 
-A CLI tool for managing Cursor AI rules with dependency resolution and conflict detection.
+</p>
 
-## Features
+---
+
+## 📋 Overview
+
+AI Rules CLI is a command-line tool for managing and composing rule sets defined in ai-rules.
+It provides an interactive wizard, schema validation, dependency resolution, and conflict detection — all fully typed with TypeScript.
+
+---
+
+## ✨ Features
 
 - **Interactive Wizard**: Step-by-step rule selection with visual feedback
 - **Dependency Resolution**: Automatically resolves rule dependencies
@@ -13,21 +37,23 @@ A CLI tool for managing Cursor AI rules with dependency resolution and conflict 
 - **Multiple Commands**: List, validate, check, and generate rules
 - **TypeScript**: Fully typed with strict mode
 
-## Installation
+---
 
-### Global Installation
+## 📦 Installation
+
+### • Global Installation
 
 ```bash
 npm install -g ai-rules-cli
 ```
 
-### Using npx (Recommended)
+### • Using npx (Recommended)
 
 ```bash
 npx ai-rules-cli init
 ```
 
-### Local Development
+### • Local Development
 
 ```bash
 git clone https://github.com/rerades/ai-rules-cli.git
@@ -37,9 +63,11 @@ npm run build
 npm link
 ```
 
-## Configuration
+---
 
-### QUICK RULES SETUP
+## ⚙️ Configuration
+
+### • QUICK RULES SETUP
 
 **Note:** This CLI does not include any predefined rules. To use your own rules, you must specify where the CLI can find them. By default, the CLI will look for rules in your user directory at `~/ai-rules` (you can change this path using environment variables).
 
@@ -58,15 +86,23 @@ The CLI uses the following default configuration:
 
 You can override these settings using environment variables:
 
+| Variable               | Default         | Description                       |
+| ---------------------- | --------------- | --------------------------------- |
+| `AI_RULES_REPO_PATH`   | `~/ai-rules`    | Repository where rules are stored |
+| `AI_RULES_OUTPUT_PATH` | `.cursor/rules` | Output folder                     |
+| `AI_RULES_VERBOSE`     | `false`         | Enable verbose logging            |
+
 ```bash
 export AI_RULES_REPO_PATH="/path/to/your/rules/repo"
 export AI_RULES_OUTPUT_PATH="/path/to/output"
 export AI_RULES_VERBOSE=true
 ```
 
-## Usage
+---
 
-### Initialize a new project
+## 🚀 Usage
+
+### • Initialize a new project
 
 ```bash
 ai-rules init
@@ -80,7 +116,7 @@ This will launch the interactive wizard to:
 4. Resolve dependencies and conflicts
 5. Generate rule files
 
-### List available rules
+### • List available rules
 
 ```bash
 ai-rules list
@@ -92,7 +128,7 @@ Options:
 - `-s, --search <query>` - Search rules by title or summary
 - `-v, --verbose` - Show detailed information
 
-### Validate rules
+### • Validate rules
 
 ```bash
 ai-rules validate
@@ -102,7 +138,7 @@ Options:
 
 - `-v, --verbose` - Show detailed validation results
 
-### Check dependencies and conflicts
+### • Check dependencies and conflicts
 
 ```bash
 ai-rules check <rule-ids...>
@@ -112,7 +148,7 @@ Options:
 
 - `-v, --verbose` - Show detailed information
 
-### Generate rules directly
+### • Generate rules directly
 
 ```bash
 ai-rules generate <rule-ids...> -o <output-path>
@@ -124,7 +160,9 @@ Options:
 - `--dry-run` - Simulate without creating files
 - `-v, --verbose` - Enable verbose output
 
-## Rule Schema
+---
+
+## 📋 Rule Schema
 
 Rules must follow the MDC (Markdown with frontmatter) schema defined in `mdc.schema.json`. Each rule file should have:
 
@@ -146,12 +184,14 @@ lifecycle: "recommended"
 maturity: "stable"
 order: 10
 ---
-# Code Guidelines
+# 📝 Code Guidelines
 
 This rule defines basic coding standards...
 ```
 
-## Output Structure
+---
+
+## 📁 Output Structure
 
 The CLI generates the following structure:
 
@@ -164,7 +204,7 @@ The CLI generates the following structure:
     └── ...
 ```
 
-### Index File
+### • Index File
 
 The `index.md` file contains:
 
@@ -173,22 +213,24 @@ The `index.md` file contains:
 - Rule metadata
 - Usage instructions
 
-### Rule Files
+### • Rule Files
 
 Each rule file (`.mdc`) contains:
 
 - YAML frontmatter with metadata
 - Markdown content with the actual rule
 
-## Development
+---
 
-### Prerequisites
+## 🛠️ Development
+
+### • Prerequisites
 
 - Node.js 18+
 - TypeScript 5+
 - npm or yarn
 
-### Setup
+### • Setup
 
 ```bash
 git clone <repository-url>
@@ -196,32 +238,34 @@ cd ai-rules-cli
 npm install
 ```
 
-### Build
+### • Build
 
 ```bash
 npm run build
 ```
 
-### Development
+### • Development
 
 ```bash
 npm run dev
 ```
 
-### Testing
+### • Testing
 
 ```bash
 npm test
 ```
 
-### Linting
+### • Linting
 
 ```bash
 npm run lint
 npm run lint:fix
 ```
 
-## Architecture
+---
+
+## 🏗️ Architecture
 
 The CLI is built with a modular architecture:
 
@@ -250,7 +294,9 @@ src/
 └── index.ts        # CLI entry point
 ```
 
-## Error Handling
+---
+
+## ⚠️ Error Handling
 
 The CLI provides comprehensive error handling:
 
@@ -260,7 +306,9 @@ The CLI provides comprehensive error handling:
 - **File Errors**: File system operations are handled gracefully
 - **User Errors**: Invalid inputs are caught and reported
 
-## Contributing
+---
+
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -268,11 +316,15 @@ The CLI provides comprehensive error handling:
 4. Add tests
 5. Submit a pull request
 
-## License
+---
+
+## 📄 License
 
 MIT License - see LICENSE file for details.
 
-## Support
+---
+
+## 💬 Support
 
 For issues and questions:
 
@@ -280,14 +332,8 @@ For issues and questions:
 - Check the documentation
 - Review the examples
 
-## Changelog
+---
 
-### v1.0.0
+## 🪪 License
 
-- Initial release
-- Interactive wizard
-- Dependency resolution
-- Conflict detection
-- Schema validation
-- Professional UI
-- Multiple commands
+MIT © [Rodrigo Erades](https://github.com/rerades)

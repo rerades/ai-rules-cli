@@ -1,0 +1,20 @@
+{
+  "editor.folding": true,
+  "editor.showFoldingControls": "always",
+  "editor.foldingStrategy": "indentation",
+  "markdown.preview.breaks": true,
+  "markdown.preview.linkify": true,
+  "markdown.preview.typographer": true,
+  "editor.foldingImportsByDefault": false,
+  "editor.unfoldOnClickAfterEnd": false,
+  "editor.foldingHighlight": true,
+  "editor.foldingRanges": "indentation",
+  "markdown.extension.toc.levels": "1..6",
+  "markdown.extension.toc.orderedList": false,
+  "markdown.extension.toc.plaintext": false,
+  "markdown.extension.toc.updateOnSave": true,
+  "markdown.extension.toc.slugifyMode": "github",
+  "files.associations": {
+    "*.mdc": "markdown"
+  }
+}
