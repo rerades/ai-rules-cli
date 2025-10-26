@@ -4,30 +4,42 @@
  */
 
 import { join } from "path";
-import type { CLIConfig } from "../types/config.types";
+import type { CLIConfig, DeepPartial } from "../types/config.types";
 import { DEFAULT_CONFIG } from "../types/config.types";
 import { resolvePath as resolvePathUtil } from "../utils/file-utils";
 
 /**
  * Creates a configuration object with resolved paths
  */
-export const createConfig = (overrides: Partial<CLIConfig> = {}): CLIConfig => {
-  const config = { ...DEFAULT_CONFIG, ...overrides };
+export const createConfig = (overrides: DeepPartial<CLIConfig> = {}): CLIConfig => {
+  const mergedRepository = {
+    ...DEFAULT_CONFIG.repository,
+    ...(overrides.repository ?? {}),
+  } as typeof DEFAULT_CONFIG.repository;
+
+  const mergedOutput = {
+    ...DEFAULT_CONFIG.output,
+    ...(overrides.output ?? {}),
+  } as typeof DEFAULT_CONFIG.output;
+
+  const mergedUI = {
+    ...DEFAULT_CONFIG.ui,
+    ...(overrides.ui ?? {}),
+  } as typeof DEFAULT_CONFIG.ui;
 
   return {
-    ...config,
     repository: {
-      path: resolvePathUtil(config.repository.path),
-      rulesDirectory: config.repository.rulesDirectory,
-      schemaPath: config.repository.schemaPath,
+      path: resolvePathUtil(mergedRepository.path),
+      rulesDirectory: mergedRepository.rulesDirectory,
+      schemaPath: mergedRepository.schemaPath,
     },
     output: {
-      defaultDirectory: config.output.defaultDirectory,
-      rulesDirectory: config.output.rulesDirectory,
+      defaultDirectory: mergedOutput.defaultDirectory,
+      rulesDirectory: mergedOutput.rulesDirectory,
     },
     ui: {
-      verbose: config.ui.verbose,
-      colors: config.ui.colors,
+      verbose: mergedUI.verbose,
+      colors: mergedUI.colors,
     },
   };
 };
@@ -91,8 +103,8 @@ export const validateRepositoryConfig = (config: CLIConfig): boolean => {
 /**
  * Gets configuration from environment variables
  */
-export const getConfigFromEnv = (): Partial<CLIConfig> => {
-  const envConfig: Partial<CLIConfig> = {};
+export const getConfigFromEnv = (): DeepPartial<CLIConfig> => {
+  const envConfig: DeepPartial<CLIConfig> = {};
 
   if (process.env.AI_RULES_REPO_PATH) {
     (envConfig as any).repository = {

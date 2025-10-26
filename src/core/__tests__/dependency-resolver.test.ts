@@ -78,7 +78,7 @@ describe("dependency-resolver", () => {
         metadata: {
           ...mockRuleMetadata,
           id: "conflicting.rule",
-          category: "conflict",
+          category: "security",
           conflicts: ["foundation.test"],
         },
         content: "# Conflicting Rule",
@@ -255,9 +255,9 @@ describe("dependency-resolver", () => {
   describe("sortRulesByOrder", () => {
     it("should sort rules by order field", () => {
       const rulesWithOrder = [
-        { ...mockRules[0], metadata: { ...mockRules[0].metadata, order: 200 } },
-        { ...mockRules[1], metadata: { ...mockRules[1].metadata, order: 100 } },
-        { ...mockRules[2], metadata: { ...mockRules[2].metadata, order: 150 } },
+        { ...mockRules[0]!, metadata: { ...mockRules[0]!.metadata, order: 200 } },
+        { ...mockRules[1]!, metadata: { ...mockRules[1]!.metadata, order: 100 } },
+        { ...mockRules[2]!, metadata: { ...mockRules[2]!.metadata, order: 150 } },
       ];
 
       const result = sortRulesByOrder(rulesWithOrder);
@@ -268,12 +268,15 @@ describe("dependency-resolver", () => {
     });
 
     it("should handle rules without order field", () => {
+      const metadataWithoutOrder = (({ order: _removed, ...rest }) => rest)(
+        mockRules[0]!.metadata
+      ) as RuleMetadata;
       const rulesWithoutOrder = [
         {
-          ...mockRules[0],
-          metadata: { ...mockRules[0].metadata, order: undefined },
+          ...mockRules[0]!,
+          metadata: metadataWithoutOrder,
         },
-        { ...mockRules[1], metadata: { ...mockRules[1].metadata, order: 100 } },
+        { ...mockRules[1]!, metadata: { ...mockRules[1]!.metadata, order: 100 } },
       ];
 
       const result = sortRulesByOrder(rulesWithoutOrder);
@@ -285,10 +288,10 @@ describe("dependency-resolver", () => {
 
   describe("getSupersedingRules", () => {
     it("should find rules that supersede others", async () => {
-      const supersedingRule = {
-        ...mockRules[0],
+      const supersedingRule: RuleContent = {
+        ...mockRules[0]!,
         metadata: {
-          ...mockRules[0].metadata,
+          ...mockRules[0]!.metadata,
           id: "new.foundation.rule",
           supersedes: ["foundation.test"],
         },
@@ -320,10 +323,10 @@ describe("dependency-resolver", () => {
 
   describe("removeSupersededRules", () => {
     it("should remove superseded rules from selection", async () => {
-      const supersedingRule = {
-        ...mockRules[0],
+      const supersedingRule: RuleContent = {
+        ...mockRules[0]!,
         metadata: {
-          ...mockRules[0].metadata,
+          ...mockRules[0]!.metadata,
           id: "new.foundation.rule",
           supersedes: ["foundation.test"],
         },
@@ -371,10 +374,10 @@ describe("dependency-resolver", () => {
 
     it("should include warnings for missing dependencies", async () => {
       // Create a rule that requires a missing dependency
-      const ruleWithMissingDep = {
-        ...mockRules[0],
+      const ruleWithMissingDep: RuleContent = {
+        ...mockRules[0]!,
         metadata: {
-          ...mockRules[0].metadata,
+          ...mockRules[0]!.metadata,
           id: "rule.with.missing.dep",
           requires: ["missing.dependency"],
         },
@@ -396,18 +399,18 @@ describe("dependency-resolver", () => {
 
   describe("edge cases", () => {
     it("should handle circular dependencies", async () => {
-      const circularRule1 = {
-        ...mockRules[0],
+      const circularRule1: RuleContent = {
+        ...mockRules[0]!,
         metadata: {
-          ...mockRules[0].metadata,
+          ...mockRules[0]!.metadata,
           id: "circular.rule1",
           requires: ["circular.rule2"],
         },
       };
-      const circularRule2 = {
-        ...mockRules[0],
+      const circularRule2: RuleContent = {
+        ...mockRules[0]!,
         metadata: {
-          ...mockRules[0].metadata,
+          ...mockRules[0]!.metadata,
           id: "circular.rule2",
           requires: ["circular.rule1"],
         },
@@ -426,10 +429,10 @@ describe("dependency-resolver", () => {
     });
 
     it("should handle rules with multiple conflicts", async () => {
-      const multiConflictRule = {
-        ...mockRules[0],
+      const multiConflictRule: RuleContent = {
+        ...mockRules[0]!,
         metadata: {
-          ...mockRules[0].metadata,
+          ...mockRules[0]!.metadata,
           id: "multi.conflict.rule",
           conflicts: ["foundation.test", "typescript.conventions"],
         },

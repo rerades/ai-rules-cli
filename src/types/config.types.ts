@@ -8,6 +8,12 @@ export interface RuleRepositoryConfig {
   readonly schemaPath: string;
 }
 
+export type DeepPartial<T> = {
+  readonly [K in keyof T]?: T[K] extends Record<string, unknown>
+    ? DeepPartial<T[K]>
+    : T[K];
+};
+
 export interface CLIConfig {
   readonly repository: RuleRepositoryConfig;
   readonly output: {
