@@ -1,5 +1,7 @@
 # AI Rules CLI
 
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/rerades/ai-rules-cli?utm_source=oss&utm_medium=github&utm_campaign=rerades%2Fai-rules-cli&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
+
 A CLI tool for managing Cursor AI rules with dependency resolution and conflict detection.
 
 ## Features
@@ -36,6 +38,16 @@ npm link
 ```
 
 ## Configuration
+
+### QUICK RULES SETUP
+
+**Note:** This CLI do not have any predefine rules so in order to use your rules you must tell the cli were to find your stored rules, by default the cli will try to fin the rules under your user directory `~/ai-rules` (you can change the path with environment variables)
+
+Any new rule that you define _must follow_ [the predefined schema](./mdc.schema.json) created in this repository.
+
+For a quick rules setup , I also maintain a [repo with rules](https://github.com/rerades/ai-rules) , you can fork it to create your own sets of rules.
+
+You can install copy the rules to the default repository path `~/ai-rules` that uses this cli in order to quick star
 
 The CLI uses the following default configuration:
 
