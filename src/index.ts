@@ -47,7 +47,10 @@ program
           createErrorMessage("Repository configuration is invalid")
         );
         console.error(
-          "Please check that the AI rules repository exists and is accessible"
+          `Please check that the AI rules repository exists and is accessible at: ${defaultConfig.repository.path}.
+          You can change the repository path using the --repository-path option.
+          Or set the AI_RULES_REPO_PATH environment variable.
+          `
         );
         process.exit(1);
       }
