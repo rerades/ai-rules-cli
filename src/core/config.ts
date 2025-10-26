@@ -95,7 +95,9 @@ export const getSchemaPath = (config: CLIConfig): string => {
     }
   }
 
-  return candidates[0];
+  return (
+    candidates[0] ?? join(config.repository.path, config.repository.schemaPath)
+  );
 };
 
 /**
