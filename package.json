@@ -1,6 +1,6 @@
 {
   "name": "ai-rules-cli",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "CLI for managing Cursor AI rules with dependency resolution and conflict detection",
   "main": "dist/index.js",
   "bin": {
@@ -56,7 +56,13 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "files": ["dist/**/*.js", "dist/**/*.d.ts", "README.md", "LICENSE"],
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "mdc.schema.json",
+    "README.md",
+    "LICENSE"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/rerades/ai-rules-cli.git"
