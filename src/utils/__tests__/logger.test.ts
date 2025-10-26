@@ -164,7 +164,7 @@ describe("logger", () => {
 
         logger.info("Test message", { key: "value" });
 
-        const logCall = mockConsoleLog.mock.calls[0][0] as string;
+        const logCall = mockConsoleLog.mock.calls[0]?.[0] as string;
         expect(logCall).toMatch(
           /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z INFO\s+Test message {"key":"value"}$/
         );

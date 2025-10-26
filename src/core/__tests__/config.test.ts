@@ -18,7 +18,7 @@ import {
 } from "../config";
 
 import { existsSync } from "fs";
-import type { CLIConfig, RuleRepositoryConfig } from "../../types/config.types";
+import type { CLIConfig } from "../../types/config.types";
 
 describe("config", () => {
   beforeEach(() => {
@@ -74,7 +74,13 @@ describe("config", () => {
     });
 
     it("should create config with custom UI settings", () => {
-      const customRepo = { repository: { path: "/custom/path" } };
+      const customRepo = { 
+        repository: { 
+          path: "/custom/path",
+          rulesDirectory: "rules",
+          schemaPath: "mdc.schema.json"
+        } 
+      };
       const customOutput = { output: { defaultDirectory: "/custom/output" } };
       const customUI = { ui: { colors: false, verbose: true } };
       const config = createConfig({

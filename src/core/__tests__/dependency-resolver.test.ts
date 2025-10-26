@@ -23,9 +23,6 @@ import { loadAllRules, getAvailableRuleIds } from "../rule-loader";
 import type {
   RuleContent,
   RuleMetadata,
-  DependencyInfo,
-  ConflictInfo,
-  RuleSelection,
 } from "../../types/rule.types";
 import type { CLIConfig } from "../../types/config.types";
 
