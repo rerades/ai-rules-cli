@@ -1,5 +1,9 @@
 ## Changelog
 
+### v1.0.3
+
+- Adjusted schema resolution to prioritize the CLI-bundled `mdc.schema.json` and avoid requiring a duplicate in downstream repositories
+
 ### v1.0.2
 
 - **Package Management**: Updated version to 1.0.2 and included mdc.schema.json in files list for better package distribution
@@ -9,9 +13,11 @@
   - Adjusted tsconfig.json to disable declaration and source maps for a more efficient build
   - Enhanced error messaging in src/index.ts for clearer repository path guidance
 - **Configuration**: Enhanced configuration handling with DeepPartial type and improved test exclusions
+
   - Updated the createConfig and getConfigFromEnv functions to utilize DeepPartial for better type safety
   - Refactored configuration merging logic for repository, output, and UI properties
   - Expanded tsconfig.json exclusions to include test files for cleaner builds
+
 - **Testing**: Cleaned up type imports and enhanced test structure
   - Removed unused type imports from dependency-resolver.test.ts for clarity
   - Updated config.test.ts to include additional properties in the custom repository object for improved test coverage

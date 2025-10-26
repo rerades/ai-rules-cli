@@ -3,10 +3,33 @@
  * Manages repository paths and CLI settings
  */
 
-import { join } from "path";
+import { existsSync } from "fs";
+import { join, isAbsolute } from "path";
 import type { CLIConfig, DeepPartial } from "../types/config.types";
 import { DEFAULT_CONFIG } from "../types/config.types";
 import { resolvePath as resolvePathUtil } from "../utils/file-utils";
+
+/**
+ * Resolves potential schema locations, preferring the CLI's bundled schema
+ * and falling back to the rules repository if needed.
+ */
+const getSchemaCandidates = (
+  schemaPath: string,
+  repositoryPath: string
+): readonly string[] => {
+  if (isAbsolute(schemaPath)) {
+    return [schemaPath];
+  }
+
+  const cliSchemaPath = join(__dirname, "../../", schemaPath);
+  const repositorySchemaPath = join(repositoryPath, schemaPath);
+
+  if (cliSchemaPath === repositorySchemaPath) {
+    return [cliSchemaPath];
+  }
+
+  return [cliSchemaPath, repositorySchemaPath];
+};
 
 /**
  * Creates a configuration object with resolved paths
@@ -27,9 +50,11 @@ export const createConfig = (overrides: DeepPartial<CLIConfig> = {}): CLIConfig 
     ...(overrides.ui ?? {}),
   } as typeof DEFAULT_CONFIG.ui;
 
+  const resolvedRepositoryPath = resolvePathUtil(mergedRepository.path);
+
   return {
     repository: {
-      path: resolvePathUtil(mergedRepository.path),
+      path: resolvedRepositoryPath,
       rulesDirectory: mergedRepository.rulesDirectory,
       schemaPath: mergedRepository.schemaPath,
     },
@@ -55,7 +80,22 @@ export const getRulesDirectoryPath = (config: CLIConfig): string => {
  * Gets the full path to the schema file
  */
 export const getSchemaPath = (config: CLIConfig): string => {
-  return join(config.repository.path, config.repository.schemaPath);
+  if (!config.repository.schemaPath) {
+    return join(config.repository.path, config.repository.schemaPath);
+  }
+
+  const candidates = getSchemaCandidates(
+    config.repository.schemaPath,
+    config.repository.path
+  );
+
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return candidates[0];
 };
 
 /**
@@ -76,8 +116,6 @@ export const validateRepositoryConfig = (config: CLIConfig): boolean => {
 
   // Check if repository path exists
   try {
-    const { existsSync } = require("fs");
-
     if (!existsSync(repository.path)) {
       return false;
     }
@@ -88,9 +126,13 @@ export const validateRepositoryConfig = (config: CLIConfig): boolean => {
       return false;
     }
 
-    // Check if schema file exists
-    const schemaPath = join(repository.path, repository.schemaPath);
-    if (!existsSync(schemaPath)) {
+    // Check if schema file exists either in the CLI bundle or the repository
+    const schemaExists = getSchemaCandidates(
+      repository.schemaPath,
+      repository.path
+    ).some((candidate) => existsSync(candidate));
+
+    if (!schemaExists) {
       return false;
     }
 

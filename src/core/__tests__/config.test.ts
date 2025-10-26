@@ -145,7 +145,7 @@ describe("config", () => {
   });
 
   describe("getSchemaPath", () => {
-    it("should return path for expanded tilde", () => {
+    it("should return repository schema when available", () => {
       const config: CLIConfig = {
         repository: {
           path: join(homedir(), "ai-rules"),
@@ -156,12 +156,22 @@ describe("config", () => {
         ui: { colors: true, verbose: false },
       };
 
+      const repositorySchemaPath = join(
+        homedir(),
+        "ai-rules",
+        "schema.json"
+      );
+
+      (existsSync as any).mockImplementation(
+        (path: string) => path === repositorySchemaPath
+      );
+
       const result = getSchemaPath(config);
 
-      expect(result).toBe(join(homedir(), "ai-rules", "schema.json"));
+      expect(result).toBe(repositorySchemaPath);
     });
 
-    it("should return absolute path unchanged", () => {
+    it("should return absolute schema path unchanged", () => {
       const config: CLIConfig = {
         repository: {
           path: "/absolute/path",
@@ -172,12 +182,18 @@ describe("config", () => {
         ui: { colors: true, verbose: false },
       };
 
+      const repositorySchemaPath = "/absolute/path/schema.json";
+
+      (existsSync as any).mockImplementation(
+        (path: string) => path === repositorySchemaPath
+      );
+
       const result = getSchemaPath(config);
 
-      expect(result).toBe("/absolute/path/schema.json");
+      expect(result).toBe(repositorySchemaPath);
     });
 
-    it("should handle custom schema path", () => {
+    it("should handle custom repository schema path", () => {
       const config: CLIConfig = {
         repository: {
           path: join(homedir(), "ai-rules"),
@@ -188,9 +204,47 @@ describe("config", () => {
         ui: { colors: true, verbose: false },
       };
 
+      const repositorySchemaPath = join(
+        homedir(),
+        "ai-rules",
+        "custom-schema.json"
+      );
+
+      (existsSync as any).mockImplementation(
+        (path: string) => path === repositorySchemaPath
+      );
+
       const result = getSchemaPath(config);
 
-      expect(result).toBe(join(homedir(), "ai-rules", "custom-schema.json"));
+      expect(result).toBe(repositorySchemaPath);
+    });
+
+    it("should fall back to CLI bundled schema when repository schema is missing", () => {
+      const config: CLIConfig = {
+        repository: {
+          path: "/absolute/path",
+          rulesDirectory: "rules",
+          schemaPath: "mdc.schema.json",
+        },
+        output: { defaultDirectory: ".cursor", rulesDirectory: "rules" },
+        ui: { colors: true, verbose: false },
+      };
+
+      const repositorySchemaPath = join(
+        config.repository.path,
+        config.repository.schemaPath
+      );
+
+      const observedPaths: string[] = [];
+      (existsSync as any).mockImplementation((path: string) => {
+        observedPaths.push(path);
+        return path !== repositorySchemaPath;
+      });
+
+      const result = getSchemaPath(config);
+
+      expect(result).not.toBe(repositorySchemaPath);
+      expect(observedPaths).toContain(result);
     });
   });
 
@@ -265,6 +319,47 @@ describe("config", () => {
       const result = validateRepositoryConfig(config);
 
       expect(result).toBe(false);
+    });
+
+    it("should return true when CLI schema exists even if repository schema is missing", () => {
+      const repositoryPath = "/absolute/path";
+      const rulesDirectory = "rules";
+      const schemaFileName = "mdc.schema.json";
+      const cliSchemaPath = join(__dirname, "../../../mdc.schema.json");
+      const repositorySchemaPath = join(repositoryPath, schemaFileName);
+      const rulesPath = join(repositoryPath, rulesDirectory);
+
+      (existsSync as any).mockImplementation((path: string) => {
+        if (path === repositoryPath) {
+          return true;
+        }
+        if (path === rulesPath) {
+          return true;
+        }
+        if (path === cliSchemaPath) {
+          return true;
+        }
+
+        return false;
+      });
+
+      const config: CLIConfig = {
+        repository: {
+          path: repositoryPath,
+          rulesDirectory,
+          schemaPath: schemaFileName,
+        },
+        output: { defaultDirectory: ".cursor", rulesDirectory: "rules" },
+        ui: { colors: true, verbose: false },
+      };
+
+      const result = validateRepositoryConfig(config);
+
+      expect(result).toBe(true);
+      expect((existsSync as any)).toHaveBeenCalledWith(cliSchemaPath);
+      expect((existsSync as any)).not.toHaveBeenCalledWith(
+        repositorySchemaPath
+      );
     });
 
     it("should handle validation errors gracefully", () => {
