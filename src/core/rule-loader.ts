@@ -10,6 +10,7 @@ import type { RuleContent, RuleMetadata } from "../types/rule.types";
 import type { CLIConfig } from "../types/config.types";
 import { getRulesDirectoryPath } from "./config";
 import { validateRuleComprehensive } from "./rule-validator";
+import { normalizeRuleMeta, type NormalizeOptions } from "../utils/meta-normalizer";
 
 // Cache for loaded rules
 const rulesCache = new Map<string, RuleContent[]>();
@@ -18,7 +19,8 @@ const rulesCache = new Map<string, RuleContent[]>();
  * Loads all rules from the repository
  */
 export const loadAllRules = async (
-  config: CLIConfig
+  config: CLIConfig,
+  normalizeOptions?: NormalizeOptions
 ): Promise<readonly RuleContent[]> => {
   const cacheKey = config.repository.path;
 
@@ -36,7 +38,7 @@ export const loadAllRules = async (
 
     for (const file of mdxFiles) {
       try {
-        const rule = await loadRuleFromFile(config, file);
+        const rule = await loadRuleFromFile(config, file, normalizeOptions);
         if (rule) {
           rules.push(rule);
         }
@@ -59,7 +61,8 @@ export const loadAllRules = async (
  */
 export const loadRuleFromFile = async (
   config: CLIConfig,
-  fileName: string
+  fileName: string,
+  normalizeOptions?: NormalizeOptions
 ): Promise<RuleContent | null> => {
   const rulesDirectory = getRulesDirectoryPath(config);
   const filePath = join(rulesDirectory, fileName);
@@ -75,7 +78,10 @@ export const loadRuleFromFile = async (
     }
 
     // Parse and validate metadata
-    const metadata = parsed.data as RuleMetadata;
+    const rawMetadata = parsed.data as RuleMetadata;
+    const metadata = normalizeOptions
+      ? (normalizeRuleMeta(rawMetadata, normalizeOptions) as RuleMetadata)
+      : rawMetadata;
     const validation = validateRuleComprehensive(metadata, config);
 
     if (!validation.isValid) {

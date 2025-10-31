@@ -21,6 +21,7 @@ import {
   formatFilePath,
 } from "../ui/formatters";
 import type { GenerationProgress } from "../types/wizard.types";
+import { normalizeRuleMeta, type NormalizeOptions } from "../utils/meta-normalizer";
 
 /**
  * Generates rule files in the output directory
@@ -30,7 +31,8 @@ export const generateRuleFiles = async (
   selections: readonly RuleSelection[],
   outputPath: string,
   config: CLIConfig,
-  dryRun: boolean = false
+  dryRun: boolean = false,
+  normalizeOptions?: NormalizeOptions
 ): Promise<{
   readonly success: boolean;
   readonly generatedFiles: readonly string[];
@@ -74,7 +76,12 @@ export const generateRuleFiles = async (
       updateSpinnerProgress(spinner, progress);
 
       try {
-        const filePath = await generateSingleRuleFile(rule, rulesDir, dryRun);
+        const filePath = await generateSingleRuleFile(
+          rule,
+          rulesDir,
+          dryRun,
+          normalizeOptions
+        );
         if (filePath) {
           generatedFiles.push(filePath);
         }
@@ -117,7 +124,8 @@ export const generateRuleFiles = async (
 const generateSingleRuleFile = async (
   rule: RuleContent,
   outputDir: string,
-  dryRun: boolean
+  dryRun: boolean,
+  normalizeOptions?: NormalizeOptions
 ): Promise<string | null> => {
   const fileName = `${rule.fileName}.mdc`;
   const filePath = join(outputDir, fileName);
@@ -127,8 +135,13 @@ const generateSingleRuleFile = async (
     return filePath;
   }
 
-  // Create the .mdc content with frontmatter
-  const frontmatter = createFrontmatter(rule.metadata);
+  // Normalize and create the .mdc content with frontmatter
+  // Always apply stripDefaults, and pickEssential if minify is enabled
+  const normalizedMeta = normalizeRuleMeta(
+    rule.metadata,
+    normalizeOptions ?? { minify: false }
+  ) as RuleContent["metadata"];
+  const frontmatter = createFrontmatter(normalizedMeta);
   const content = `${frontmatter}\n\n${rule.content}`;
 
   await writeFile(filePath, content, "utf8");
@@ -140,46 +153,27 @@ const generateSingleRuleFile = async (
  * Creates YAML frontmatter from rule metadata
  */
 const createFrontmatter = (metadata: RuleContent["metadata"]): string => {
-  const frontmatter: Record<string, unknown> = {
-    id: metadata.id,
-    version: metadata.version,
-    title: metadata.title,
-  };
+  // Build a stable ordered map of keys: required first, then the rest in alpha order
+  const entries: [string, unknown][] = [];
+  entries.push(["id", metadata.id]);
+  entries.push(["version", metadata.version]);
+  entries.push(["title", metadata.title]);
+  if (metadata.category) entries.push(["category", metadata.category]);
 
-  // Add optional fields - including the missing ones
-  if (metadata.description) frontmatter.description = metadata.description;
-  if (metadata.alwaysApply !== undefined)
-    frontmatter.alwaysApply = metadata.alwaysApply;
-  if (metadata.globs) frontmatter.globs = metadata.globs;
-  if (metadata.category) frontmatter.category = metadata.category;
-  if (metadata.scope) frontmatter.scope = metadata.scope;
-  if (metadata.language) frontmatter.language = metadata.language;
-  if (metadata.frameworks) frontmatter.frameworks = metadata.frameworks;
-  if (metadata.tooling) frontmatter.tooling = metadata.tooling;
-  if (metadata.lifecycle) frontmatter.lifecycle = metadata.lifecycle;
-  if (metadata.maturity) frontmatter.maturity = metadata.maturity;
-  if (metadata.stability) frontmatter.stability = metadata.stability;
-  if (metadata.audience) frontmatter.audience = metadata.audience;
-  if (metadata.severity) frontmatter.severity = metadata.severity;
-  if (metadata.requires) frontmatter.requires = metadata.requires;
-  if (metadata.conflicts) frontmatter.conflicts = metadata.conflicts;
-  if (metadata.supersedes) frontmatter.supersedes = metadata.supersedes;
-  if (metadata.bundles) frontmatter.bundles = metadata.bundles;
-  if (metadata.files) frontmatter.files = metadata.files;
-  if (metadata.enforcement) frontmatter.enforcement = metadata.enforcement;
-  if (metadata.order !== undefined) frontmatter.order = metadata.order;
-  if (metadata.inputs) frontmatter.inputs = metadata.inputs;
-  if (metadata.tags) frontmatter.tags = metadata.tags;
-  if (metadata.owner) frontmatter.owner = metadata.owner;
-  if (metadata.review) frontmatter.review = metadata.review;
-  if (metadata.license) frontmatter.license = metadata.license;
-  if (metadata.links) frontmatter.links = metadata.links;
-  if (metadata.i18n) frontmatter.i18n = metadata.i18n;
+  // Collect remaining keys excluding already added
+  const skip = new Set(entries.map(([k]) => k));
+  const others: [string, unknown][] = Object.entries(metadata as Record<string, unknown>)
+    .filter(([k, v]) => !skip.has(k) && v !== undefined && v !== null);
+
+  // Sort remaining keys alphabetically for stable output
+  others.sort(([a], [b]) => a.localeCompare(b));
+
+  const ordered = [...entries, ...others];
 
   // Convert to YAML format with proper handling of complex objects
   const yamlLines = ["---"];
 
-  for (const [key, value] of Object.entries(frontmatter)) {
+  for (const [key, value] of ordered) {
     if (value !== undefined && value !== null) {
       yamlLines.push(...serializeYamlValue(key, value, 0));
     }

@@ -250,11 +250,22 @@ program
   .argument("<rule-ids...>", "Rule IDs to generate")
   .option("-o, --output <path>", "Output directory path", "./")
   .option("--dry-run", "Simulate without creating files")
+  .option("-m, --minify-frontmatter", "Emit minimal frontmatter")
+  .option(
+    "--keep <fields>",
+    "Comma-separated optional fields to retain (e.g., description,scope,enforcement)"
+  )
   .option("-v, --verbose", "Enable verbose output")
   .action(
     async (
       ruleIds: string[],
-      options: { output: string; dryRun?: boolean; verbose?: boolean }
+      options: {
+        output: string;
+        dryRun?: boolean;
+        verbose?: boolean;
+        minifyFrontmatter?: boolean;
+        keep?: string;
+      }
     ) => {
       try {
         console.log(createWelcomeBanner());
@@ -271,12 +282,20 @@ program
           process.exit(1);
         }
 
+        const keepFields = (options.keep || "")
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
         const generationResult = await generateRuleFiles(
           allRules,
           resolution.finalSelections,
           options.output,
           defaultConfig,
-          options.dryRun
+          options.dryRun,
+          {
+            minify: options.minifyFrontmatter === true,
+            keepFields,
+          }
         );
 
         if (!generationResult.success) {

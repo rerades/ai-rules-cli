@@ -422,4 +422,191 @@ describe("output-generator", () => {
       expect(mockMkdir).not.toHaveBeenCalled();
     });
   });
+
+  describe("normalization options", () => {
+    it("should strip defaults when no options provided", async () => {
+      const ruleWithDefaults = {
+        ...mockRules[0],
+        metadata: {
+          ...mockRules[0].metadata,
+          alwaysApply: true,
+          globs: [],
+          frameworks: [],
+        },
+      };
+
+      const result = await generateRuleFiles(
+        [ruleWithDefaults],
+        [mockSelections[0]],
+        "/output",
+        mockConfig
+      );
+
+      expect(result.success).toBe(true);
+      const call = (mockWriteFile as any).mock.calls[0];
+      // alwaysApply is always kept now
+      expect(call[1]).toContain("alwaysApply:");
+      expect(call[1]).not.toContain("globs:");
+      expect(call[1]).not.toContain("frameworks:");
+    });
+
+    it("should minify frontmatter when minify option is enabled", async () => {
+      const ruleWithExtras = {
+        ...mockRules[0],
+        metadata: {
+          ...mockRules[0].metadata,
+          description: "Test description",
+          scope: ["global"],
+          language: "ts",
+          order: 100,
+          maturity: "stable",
+        },
+      };
+
+      const result = await generateRuleFiles(
+        [ruleWithExtras],
+        [mockSelections[0]],
+        "/output",
+        mockConfig,
+        false,
+        { minify: true }
+      );
+
+      expect(result.success).toBe(true);
+      const call = (mockWriteFile as any).mock.calls[0];
+      const content = call[1];
+
+      // Should have required fields
+      expect(content).toContain('id: "foundation.test"');
+      expect(content).toContain('version: "1.0.0"');
+      expect(content).toContain('title: "Test Rule"');
+      expect(content).toContain('category: "foundation"');
+
+      // Should not have optional fields not in keepFields
+      expect(content).not.toContain("description:");
+      expect(content).not.toContain("scope:");
+      expect(content).not.toContain("language:");
+      expect(content).not.toContain("order:");
+      expect(content).not.toContain("maturity:");
+    });
+
+    it("should keep specified fields when keepFields is provided", async () => {
+      const ruleWithExtras = {
+        ...mockRules[0],
+        metadata: {
+          ...mockRules[0].metadata,
+          description: "Test description",
+          scope: ["global"],
+          language: "ts",
+          enforcement: {
+            lint: "warn",
+            ci: "allow",
+            scaffold: "none",
+          },
+          order: 100,
+        },
+      };
+
+      const result = await generateRuleFiles(
+        [ruleWithExtras],
+        [mockSelections[0]],
+        "/output",
+        mockConfig,
+        false,
+        {
+          minify: true,
+          keepFields: ["description", "scope", "enforcement"],
+        }
+      );
+
+      expect(result.success).toBe(true);
+      const call = (mockWriteFile as any).mock.calls[0];
+      const content = call[1];
+
+      // Should have required fields
+      expect(content).toContain('id: "foundation.test"');
+      expect(content).toContain('version: "1.0.0"');
+      expect(content).toContain('title: "Test Rule"');
+      expect(content).toContain('category: "foundation"');
+
+      // Should have kept fields
+      expect(content).toContain("description:");
+      expect(content).toContain("scope:");
+      expect(content).toContain("enforcement:");
+
+      // Should not have fields not in keepFields
+      expect(content).not.toContain("language:");
+      expect(content).not.toContain("order:");
+    });
+
+    it("should maintain stable key ordering in frontmatter", async () => {
+      const ruleWithManyFields = {
+        ...mockRules[0],
+        metadata: {
+          ...mockRules[0].metadata,
+          description: "Description",
+          scope: ["global"],
+          language: "ts",
+          order: 50,
+        },
+      };
+
+      const result = await generateRuleFiles(
+        [ruleWithManyFields],
+        [mockSelections[0]],
+        "/output",
+        mockConfig
+      );
+
+      expect(result.success).toBe(true);
+      const call = (mockWriteFile as any).mock.calls[0];
+      const content = call[1];
+
+      // Extract frontmatter section
+      const frontmatterMatch = content.match(/---\n([\s\S]*?)\n---/);
+      expect(frontmatterMatch).not.toBeNull();
+
+      if (frontmatterMatch) {
+        const frontmatter = frontmatterMatch[1];
+        const lines = frontmatter.split("\n").filter((line: string) => line.trim());
+
+        // Required fields should be first
+        expect(lines[0]).toContain("id:");
+        expect(lines[1]).toContain("version:");
+        expect(lines[2]).toContain("title:");
+        expect(lines[3]).toContain("category:");
+      }
+    });
+
+    it("should remove empty arrays even when not minifying", async () => {
+      const ruleWithEmptyArrays = {
+        ...mockRules[0],
+        metadata: {
+          ...mockRules[0].metadata,
+          globs: [],
+          frameworks: [],
+          requires: [],
+          tags: [],
+        },
+      };
+
+      const result = await generateRuleFiles(
+        [ruleWithEmptyArrays],
+        [mockSelections[0]],
+        "/output",
+        mockConfig,
+        false,
+        { minify: false }
+      );
+
+      expect(result.success).toBe(true);
+      const call = (mockWriteFile as any).mock.calls[0];
+      const content = call[1];
+
+      expect(content).not.toContain("globs:");
+      expect(content).not.toContain("frameworks:");
+      expect(content).not.toContain("requires:");
+      expect(content).not.toContain("tags:");
+    });
+  });
 });
