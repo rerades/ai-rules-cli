@@ -36,7 +36,15 @@ import {
   createReviewPrompt,
   createConflictResolutionPrompt,
   createGenerationConfirmationPrompt,
+  createMinificationPrompt,
+  createMinificationModePrompt,
+  createFieldSelectionPrompt,
 } from "./prompts";
+import {
+  RECOMMENDED_FIELDS,
+  getAvailableMetadataFields,
+  type NormalizeOptions,
+} from "../utils/meta-normalizer";
 
 /**
  * Main wizard function
@@ -108,6 +116,37 @@ export const runWizard = async (
 
     // Output path selection
     const outputPath = await createOutputPathPrompt();
+
+    // Minification configuration
+    const wantsMinify = await createMinificationPrompt();
+    let normalizeOptions: NormalizeOptions = { minify: false };
+
+    if (wantsMinify) {
+      const minificationMode = await createMinificationModePrompt();
+
+      switch (minificationMode) {
+        case "minimal":
+          normalizeOptions = { minify: true, keepFields: [] };
+          break;
+        case "recommended":
+          normalizeOptions = {
+            minify: true,
+            keepFields: RECOMMENDED_FIELDS,
+          };
+          break;
+        case "select": {
+          const availableFields = getAvailableMetadataFields();
+          const selectedFields = await createFieldSelectionPrompt(
+            availableFields
+          );
+          normalizeOptions = {
+            minify: true,
+            keepFields: selectedFields,
+          };
+          break;
+        }
+      }
+    }
 
     // Resolve dependencies and conflicts
     const dependencySpinner = createDependencySpinner();
@@ -203,7 +242,8 @@ export const runWizard = async (
       finalSelections,
       outputPath,
       config,
-      false // dryRun
+      false, // dryRun
+      normalizeOptions
     );
 
     if (!generationResult.success) {

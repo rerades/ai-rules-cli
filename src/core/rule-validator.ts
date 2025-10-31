@@ -230,7 +230,7 @@ export const validateRuleComprehensive = (
   if (options?.minify) {
     const essential = new Set<string>(["id", "version", "title", "category"]);
     const keep = new Set<string>(options.keepFields ?? []);
-    for (const key of Object.keys(rule as Record<string, unknown>)) {
+    for (const key of Object.keys(rule as unknown as Record<string, unknown>)) {
       if (!essential.has(key) && !keep.has(key)) {
         warnings.push(`Optional field present under minify: ${key}`);
       }

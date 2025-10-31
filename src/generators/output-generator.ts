@@ -21,7 +21,10 @@ import {
   formatFilePath,
 } from "../ui/formatters";
 import type { GenerationProgress } from "../types/wizard.types";
-import { normalizeRuleMeta, type NormalizeOptions } from "../utils/meta-normalizer";
+import {
+  normalizeRuleMeta,
+  type NormalizeOptions,
+} from "../utils/meta-normalizer";
 
 /**
  * Generates rule files in the output directory
@@ -162,8 +165,9 @@ const createFrontmatter = (metadata: RuleContent["metadata"]): string => {
 
   // Collect remaining keys excluding already added
   const skip = new Set(entries.map(([k]) => k));
-  const others: [string, unknown][] = Object.entries(metadata as Record<string, unknown>)
-    .filter(([k, v]) => !skip.has(k) && v !== undefined && v !== null);
+  const others: [string, unknown][] = Object.entries(
+    metadata as unknown as Record<string, unknown>
+  ).filter(([k, v]) => !skip.has(k) && v !== undefined && v !== null);
 
   // Sort remaining keys alphabetically for stable output
   others.sort(([a], [b]) => a.localeCompare(b));

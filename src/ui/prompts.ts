@@ -5,6 +5,7 @@
 
 import inquirer from "inquirer";
 import type { RuleContent, CategoryGroup } from "../types/wizard.types";
+import type { MinificationMode } from "../utils/meta-normalizer";
 import {
   colors,
   formatRule,
@@ -315,4 +316,84 @@ export const createConfirmPrompt = async (
   ]);
 
   return value;
+};
+
+/**
+ * Creates a prompt asking if the user wants to minify metadata
+ */
+export const createMinificationPrompt = async (): Promise<boolean> => {
+  const { minify } = await inquirer.prompt([
+    {
+      type: "confirm",
+      name: "minify",
+      message: "Do you want to minify the metadata (reduce frontmatter size)?",
+      default: false,
+    },
+  ]);
+
+  return minify;
+};
+
+/**
+ * Creates a prompt to select minification mode
+ */
+export const createMinificationModePrompt =
+  async (): Promise<MinificationMode> => {
+    const { mode } = await inquirer.prompt([
+      {
+        type: "list",
+        name: "mode",
+        message: "Select minification mode:",
+        choices: [
+          {
+            name: "Minimal - Only essential fields (id, version, title, category)",
+            value: "minimal",
+          },
+          {
+            name: "Recommended - Recommended fields for Cursor AI",
+            value: "recommended",
+          },
+          {
+            name: "Select - Custom field selection",
+            value: "select",
+          },
+        ],
+        default: "recommended",
+      },
+    ]);
+
+    return mode;
+  };
+
+/**
+ * Creates a prompt to select which metadata fields to keep
+ * @param availableFields - Array of available field names from the schema
+ * @returns Array of selected field names
+ */
+export const createFieldSelectionPrompt = async (
+  availableFields: readonly string[]
+): Promise<readonly string[]> => {
+  const choices = availableFields.map((field) => ({
+    name: field,
+    value: field,
+    checked: false,
+  }));
+
+  const { selectedFields } = await inquirer.prompt([
+    {
+      type: "checkbox",
+      name: "selectedFields",
+      message: "Select metadata fields to keep:",
+      choices,
+      pageSize: 15,
+      validate: (input: string[]) => {
+        if (input.length === 0) {
+          return "Please select at least one field";
+        }
+        return true;
+      },
+    },
+  ]);
+
+  return selectedFields;
 };

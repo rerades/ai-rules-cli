@@ -1,8 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   stripDefaults,
   pickEssential,
   normalizeRuleMeta,
+  RECOMMENDED_FIELDS,
+  getAvailableMetadataFields,
   type NormalizeOptions,
 } from "../meta-normalizer";
 import type { RuleMetadata } from "../../types/rule.types";
@@ -485,6 +487,165 @@ describe("meta-normalizer", () => {
       expect(result.maturity).toBeUndefined();
       expect(result.lifecycle).toBeUndefined();
       expect(result.owner).toBeUndefined();
+    });
+  });
+
+  describe("RECOMMENDED_FIELDS", () => {
+    it("should contain the expected recommended fields", () => {
+      const expectedFields = [
+        "description",
+        "scope",
+        "globs",
+        "language",
+        "enforcement",
+        "audience",
+        "severity",
+        "tags",
+        "links",
+        "order",
+      ];
+
+      expect(RECOMMENDED_FIELDS).toEqual(expectedFields);
+    });
+
+    it("should not contain required fields", () => {
+      const requiredFields = ["id", "version", "title", "category"];
+
+      for (const field of requiredFields) {
+        expect(RECOMMENDED_FIELDS).not.toContain(field);
+      }
+    });
+
+    it("should not contain administrative fields", () => {
+      const adminFields = [
+        "lifecycle",
+        "maturity",
+        "stability",
+        "owner",
+        "review",
+        "license",
+      ];
+
+      for (const field of adminFields) {
+        expect(RECOMMENDED_FIELDS).not.toContain(field);
+      }
+    });
+  });
+
+  describe("getAvailableMetadataFields", () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it("should return available fields from schema", () => {
+      const fields = getAvailableMetadataFields();
+
+      expect(fields).toBeInstanceOf(Array);
+      expect(fields.length).toBeGreaterThan(0);
+      // Should not include required fields
+      expect(fields).not.toContain("id");
+      expect(fields).not.toContain("version");
+      expect(fields).not.toContain("title");
+      expect(fields).not.toContain("category");
+    });
+
+    it("should return fields in alphabetical order", () => {
+      const fields = getAvailableMetadataFields();
+      const sorted = [...fields].sort();
+
+      expect(fields).toEqual(sorted);
+    });
+
+    it("should include expected optional fields", () => {
+      const fields = getAvailableMetadataFields();
+
+      expect(fields).toContain("description");
+      expect(fields).toContain("scope");
+      expect(fields).toContain("globs");
+      expect(fields).toContain("language");
+      expect(fields).toContain("enforcement");
+    });
+  });
+
+  describe("normalizeRuleMeta with RECOMMENDED_FIELDS", () => {
+    it("should keep only recommended fields when minifying", () => {
+      const rule: RuleMetadata = {
+        ...createBaseRule(),
+        description: "Test description",
+        scope: ["global"],
+        globs: ["**/*.ts"],
+        language: "typescript",
+        enforcement: {
+          lint: "error",
+          ci: "block",
+          scaffold: "none",
+        },
+        audience: ["frontend"],
+        severity: "high",
+        tags: ["topic:test"],
+        links: [{ rel: "docs", href: "https://example.com" }],
+        order: 100,
+        // Administrative fields that should be removed
+        owner: "test@example.com",
+        maturity: "stable",
+        lifecycle: "enforced",
+        license: "MIT",
+      };
+
+      const result = normalizeRuleMeta(rule, {
+        minify: true,
+        keepFields: RECOMMENDED_FIELDS,
+      });
+
+      // Required fields always present
+      expect(result.id).toBe("foundation.test");
+      expect(result.version).toBe("1.0.0");
+      expect(result.title).toBe("Test Rule");
+      expect(result.category).toBe("foundation");
+
+      // Recommended fields should be kept
+      expect(result.description).toBe("Test description");
+      expect(result.scope).toEqual(["global"]);
+      expect(result.globs).toEqual(["**/*.ts"]);
+      expect(result.language).toBe("typescript");
+      expect(result.enforcement).toEqual({
+        lint: "error",
+        ci: "block",
+        scaffold: "none",
+      });
+      expect(result.audience).toEqual(["frontend"]);
+      expect(result.severity).toBe("high");
+      expect(result.tags).toEqual(["topic:test"]);
+      expect(result.links).toEqual([
+        { rel: "docs", href: "https://example.com" },
+      ]);
+      expect(result.order).toBe(100);
+
+      // Administrative fields should be removed
+      expect(result.owner).toBeUndefined();
+      expect(result.maturity).toBeUndefined();
+      expect(result.lifecycle).toBeUndefined();
+      expect(result.license).toBeUndefined();
+    });
+
+    it("should handle missing recommended fields gracefully", () => {
+      const rule: RuleMetadata = {
+        ...createBaseRule(),
+        // Only some recommended fields present
+        description: "Test",
+        scope: ["global"],
+        // Other recommended fields missing
+      };
+
+      const result = normalizeRuleMeta(rule, {
+        minify: true,
+        keepFields: RECOMMENDED_FIELDS,
+      });
+
+      expect(result.description).toBe("Test");
+      expect(result.scope).toEqual(["global"]);
+      expect(result.globs).toBeUndefined();
+      expect(result.language).toBeUndefined();
     });
   });
 });
