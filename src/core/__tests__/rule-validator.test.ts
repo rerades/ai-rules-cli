@@ -405,5 +405,106 @@ describe("rule-validator", () => {
         "Invalid version format: invalid-version"
       );
     });
+
+    it("should warn about optional fields when minify is enabled", () => {
+      const rule: RuleMetadata = {
+        id: "foundation.test",
+        version: "1.0.0",
+        title: "Test Rule",
+        category: "foundation",
+        description: "Description",
+        scope: ["global"],
+        language: "typescript",
+        order: 100,
+      };
+
+      const result = validateRuleComprehensive(rule, mockConfig, {
+        minify: true,
+        keepFields: [],
+      });
+
+      expect(result.warnings.length).toBeGreaterThan(0);
+      expect(result.warnings.some((w) => w.includes("Optional field present under minify"))).toBe(
+        true
+      );
+    });
+
+    it("should not warn about fields in keepFields when minify is enabled", () => {
+      const rule: RuleMetadata = {
+        id: "foundation.test",
+        version: "1.0.0",
+        title: "Test Rule",
+        category: "foundation",
+        description: "Description",
+        scope: ["global"],
+        language: "typescript",
+      };
+
+      const result = validateRuleComprehensive(rule, mockConfig, {
+        minify: true,
+        keepFields: ["description", "scope"],
+      });
+
+      // Should warn about language but not about description or scope
+      const languageWarnings = result.warnings.filter((w) =>
+        w.includes("language")
+      );
+      const descriptionWarnings = result.warnings.filter((w) =>
+        w.includes("description")
+      );
+      const scopeWarnings = result.warnings.filter((w) =>
+        w.includes("scope")
+      );
+
+      expect(languageWarnings.length).toBeGreaterThan(0);
+      expect(descriptionWarnings.length).toBe(0);
+      expect(scopeWarnings.length).toBe(0);
+    });
+
+    it("should not warn when minify is disabled", () => {
+      const rule: RuleMetadata = {
+        id: "foundation.test",
+        version: "1.0.0",
+        title: "Test Rule",
+        category: "foundation",
+        description: "Description",
+        scope: ["global"],
+        language: "typescript",
+      };
+
+      const result = validateRuleComprehensive(rule, mockConfig, {
+        minify: false,
+      });
+
+      const minifyWarnings = result.warnings.filter((w) =>
+        w.includes("Optional field present under minify")
+      );
+
+      expect(minifyWarnings.length).toBe(0);
+    });
+
+    it("should not warn about required fields when minify is enabled", () => {
+      const rule: RuleMetadata = {
+        id: "foundation.test",
+        version: "1.0.0",
+        title: "Test Rule",
+        category: "foundation",
+      };
+
+      const result = validateRuleComprehensive(rule, mockConfig, {
+        minify: true,
+        keepFields: [],
+      });
+
+      const requiredFieldWarnings = result.warnings.filter(
+        (w) =>
+          w.includes("id") ||
+          w.includes("version") ||
+          w.includes("title") ||
+          w.includes("category")
+      );
+
+      expect(requiredFieldWarnings.length).toBe(0);
+    });
   });
 });

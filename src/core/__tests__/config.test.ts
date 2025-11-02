@@ -33,7 +33,7 @@ describe("config", () => {
       expect(config.repository.rulesDirectory).toBe("rules");
       expect(config.repository.schemaPath).toBe("mdc.schema.json");
       expect(config.output.defaultDirectory).toBe(".cursor");
-      expect(config.output.rulesDirectory).toBe("rules");
+      expect(config.output.rulesDirectory).toBe(".cursor/rules");
       expect(config.ui.colors).toBe(true);
       expect(config.ui.verbose).toBe(false);
     });
@@ -74,12 +74,12 @@ describe("config", () => {
     });
 
     it("should create config with custom UI settings", () => {
-      const customRepo = { 
-        repository: { 
+      const customRepo = {
+        repository: {
           path: "/custom/path",
           rulesDirectory: "rules",
-          schemaPath: "mdc.schema.json"
-        } 
+          schemaPath: "mdc.schema.json",
+        },
       };
       const customOutput = { output: { defaultDirectory: "/custom/output" } };
       const customUI = { ui: { colors: false, verbose: true } };
@@ -156,11 +156,7 @@ describe("config", () => {
         ui: { colors: true, verbose: false },
       };
 
-      const repositorySchemaPath = join(
-        homedir(),
-        "ai-rules",
-        "schema.json"
-      );
+      const repositorySchemaPath = join(homedir(), "ai-rules", "schema.json");
 
       (existsSync as any).mockImplementation(
         (path: string) => path === repositorySchemaPath
@@ -356,10 +352,8 @@ describe("config", () => {
       const result = validateRepositoryConfig(config);
 
       expect(result).toBe(true);
-      expect((existsSync as any)).toHaveBeenCalledWith(cliSchemaPath);
-      expect((existsSync as any)).not.toHaveBeenCalledWith(
-        repositorySchemaPath
-      );
+      expect(existsSync as any).toHaveBeenCalledWith(cliSchemaPath);
+      expect(existsSync as any).not.toHaveBeenCalledWith(repositorySchemaPath);
     });
 
     it("should handle validation errors gracefully", () => {

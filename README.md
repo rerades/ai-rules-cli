@@ -158,7 +158,37 @@ Options:
 
 - `-o, --output <path>` - Output directory path
 - `--dry-run` - Simulate without creating files
+- `-m, --minify-frontmatter` - Emit minimal frontmatter (required fields only)
+- `--keep <fields>` - Comma-separated optional fields to retain with minify (e.g., `description,scope,enforcement`)
 - `-v, --verbose` - Enable verbose output
+
+#### Frontmatter modes
+
+- Minimal (with `-m`):
+
+```yaml
+---
+id: foundation.response-deliverables.structure
+version: 1.0.0
+title: "Response Deliverables — Structure"
+category: foundation
+---
+```
+
+- Extended (default or allowlisted via `--keep`):
+
+```yaml
+---
+id: foundation.response-deliverables.structure
+version: 1.0.0
+title: "Response Deliverables — Structure"
+category: foundation
+description: "Rules for structuring responses with status, edits, and impact summary."
+scope: ["global"]
+language: "none"
+enforcement: { lint: "warn", ci: "allow", scaffold: "none" }
+---
+```
 
 ---
 

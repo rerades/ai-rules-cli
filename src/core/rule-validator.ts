@@ -9,6 +9,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import type { RuleMetadata, ValidationResult } from "../types/rule.types";
 import type { CLIConfig } from "../types/config.types";
+import type { NormalizeOptions } from "../utils/meta-normalizer";
 
 // AJV instance for validation
 let ajvInstance: Ajv | null = null;
@@ -217,14 +218,28 @@ export const validateCustomFields = (rule: RuleMetadata): ValidationResult => {
  */
 export const validateRuleComprehensive = (
   rule: RuleMetadata,
-  config: CLIConfig
+  config: CLIConfig,
+  options?: NormalizeOptions
 ): ValidationResult => {
   const schemaResult = validateRule(rule, config);
   const customResult = validateCustomFields(rule);
 
+  const warnings = [...schemaResult.warnings, ...customResult.warnings];
+
+  // When minify is requested, warn about non-essential fields present
+  if (options?.minify) {
+    const essential = new Set<string>(["id", "version", "title", "category"]);
+    const keep = new Set<string>(options.keepFields ?? []);
+    for (const key of Object.keys(rule as unknown as Record<string, unknown>)) {
+      if (!essential.has(key) && !keep.has(key)) {
+        warnings.push(`Optional field present under minify: ${key}`);
+      }
+    }
+  }
+
   return {
     isValid: schemaResult.isValid && customResult.isValid,
     errors: [...schemaResult.errors, ...customResult.errors],
-    warnings: [...schemaResult.warnings, ...customResult.warnings],
+    warnings,
   };
 };

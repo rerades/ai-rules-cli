@@ -35,7 +35,7 @@ export const DEFAULT_CONFIG: CLIConfig = {
   },
   output: {
     defaultDirectory: ".cursor",
-    rulesDirectory: "rules",
+    rulesDirectory: ".cursor/rules",
   },
   ui: {
     colors: true,
