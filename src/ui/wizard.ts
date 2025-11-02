@@ -283,10 +283,6 @@ export const runWizard = async (
     indexSpinner.succeed("Index file generated");
 
     // Generate claude.md file
-    const claudeSpinner = createIndexSpinner();
-    claudeSpinner.start();
-    claudeSpinner.text = "Generating claude.md file...";
-
     const claudeResult = await generateClaudeMd(
       allRules,
       finalSelections,
@@ -295,11 +291,8 @@ export const runWizard = async (
     );
 
     if (!claudeResult.success) {
-      claudeSpinner.fail("claude.md generation failed");
       // Don't fail the entire operation, just warn
       console.warn("Warning: Failed to generate claude.md file");
-    } else {
-      claudeSpinner.succeed("claude.md file generated");
     }
 
     // Success message
