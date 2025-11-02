@@ -234,6 +234,8 @@ The CLI generates the following structure:
     └── ...
 ```
 
+Additionally, the CLI generates a `claude.md` file in the output directory root (alongside `.cursor/rules/`) for Claude AI integration.
+
 ### • Index File
 
 The `index.md` file contains:
@@ -242,6 +244,16 @@ The `index.md` file contains:
 - Categorization
 - Rule metadata
 - Usage instructions
+
+### • Claude.md File
+
+The `claude.md` file is automatically generated to help Claude AI integrate with your rules:
+
+- Provides structured guidelines for Claude AI to reference the `.cursor/rules` directory
+- Explains how Claude can benefit from your rules and maintain consistency with Cursor IDE
+- Includes usage examples and best practices for working with rules in Claude
+- Documents available rules and categories for easy reference
+- Generated automatically when running `init` or `generate` commands
 
 ### • Rule Files
 

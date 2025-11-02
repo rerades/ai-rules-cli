@@ -1,6 +1,6 @@
 {
   "name": "ai-rules-cli",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "CLI for managing Cursor AI rules with dependency resolution and conflict detection",
   "main": "dist/index.js",
   "bin": {

@@ -1,5 +1,22 @@
 ## Changelog
 
+### v1.1.0
+
+- **Claude AI Integration**: Added automatic generation of `claude.md` file for Claude AI integration
+  - The CLI now generates a comprehensive `claude.md` file alongside `index.md` when running `init` or `generate` commands
+  - The file provides structured guidelines for Claude AI to reference `.cursor/rules` directory and maintain consistency with Cursor IDE
+  - Includes documentation on how Claude can benefit from rules, usage examples, and best practices
+  - Generation failures are handled gracefully with warnings, not blocking the overall operation
+- **Frontmatter Minification**: Expanded minification options for rule file frontmatter
+  - Added new "all" mode to retain all metadata fields without minification
+  - Enhanced user prompts to configure minification settings during wizard flow
+  - Added `--keep` option to specify comma-separated optional fields to retain when minifying
+  - Improved documentation with examples of minimal and extended frontmatter formats
+- **Refactoring**: Improved spinner management for claude.md generation
+  - Moved spinner creation and management inside `generateClaudeMd` function for better encapsulation
+  - Removed external spinner handling from wizard, simplifying code flow
+  - Error handling now warns without interrupting the wizard operation
+
 ### v1.0.3
 
 - Adjusted schema resolution to prioritize the CLI-bundled `mdc.schema.json` and avoid requiring a duplicate in downstream repositories
