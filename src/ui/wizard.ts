@@ -13,7 +13,10 @@ import type { CLIConfig } from "../types/config.types";
 import { loadAllRules, getAvailableCategories } from "../core/rule-loader";
 import { resolveComprehensive } from "../core/dependency-resolver";
 import { generateRuleFiles } from "../generators/output-generator";
-import { generateIndexFile } from "../generators/index-generator";
+import {
+  generateIndexFile,
+  generateClaudeMd,
+} from "../generators/index-generator";
 import {
   createWelcomeBanner,
   createSelectionSummary,
@@ -278,6 +281,19 @@ export const runWizard = async (
     }
 
     indexSpinner.succeed("Index file generated");
+
+    // Generate claude.md file
+    const claudeResult = await generateClaudeMd(
+      allRules,
+      finalSelections,
+      outputPath,
+      false // dryRun
+    );
+
+    if (!claudeResult.success) {
+      // Don't fail the entire operation, just warn
+      console.warn("Warning: Failed to generate claude.md file");
+    }
 
     // Success message
     console.log(

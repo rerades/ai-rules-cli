@@ -17,7 +17,10 @@ import { loadAllRules } from "./core/rule-loader";
 import { validateRules } from "./core/rule-validator";
 import { resolveComprehensive } from "./core/dependency-resolver";
 import { generateRuleFiles } from "./generators/output-generator";
-import { generateIndexFile } from "./generators/index-generator";
+import {
+  generateIndexFile,
+  generateClaudeMd,
+} from "./generators/index-generator";
 // import type { CLIOptions } from "./types/rule.types";
 
 /**
@@ -317,6 +320,17 @@ program
         if (!indexResult.success) {
           console.error(createErrorMessage("Index generation failed"));
           process.exit(1);
+        }
+
+        const claudeResult = await generateClaudeMd(
+          allRules,
+          resolution.finalSelections,
+          options.output,
+          options.dryRun
+        );
+
+        if (!claudeResult.success) {
+          console.warn("Warning: Failed to generate claude.md file");
         }
 
         console.log(
