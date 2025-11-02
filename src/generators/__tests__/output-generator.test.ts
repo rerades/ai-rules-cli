@@ -64,7 +64,7 @@ describe("output-generator", () => {
         rulesDirectory: "rules",
         schemaPath: "schema.json",
       },
-      output: { defaultDirectory: ".cursor", rulesDirectory: "rules" },
+      output: { defaultDirectory: ".cursor", rulesDirectory: ".cursor/rules" },
       ui: { colors: true, verbose: false },
     };
 
@@ -239,7 +239,7 @@ describe("output-generator", () => {
     it("should construct correct rules output path", () => {
       const result = getRulesOutputPath("/output", mockConfig);
 
-      expect(result).toBe("/output/rules");
+      expect(result).toBe("/output/.cursor/rules");
     });
 
     it("should handle different config rules directory", () => {
@@ -251,6 +251,13 @@ describe("output-generator", () => {
       const result = getRulesOutputPath("/output", customConfig);
 
       expect(result).toBe("/output/custom-rules");
+    });
+
+    it("should use .cursor/rules as default subdirectory", () => {
+      const result = getRulesOutputPath("./", mockConfig);
+
+      // join normalizes paths, so "./.cursor/rules" becomes ".cursor/rules"
+      expect(result).toBe(".cursor/rules");
     });
   });
 
@@ -568,7 +575,9 @@ describe("output-generator", () => {
 
       if (frontmatterMatch) {
         const frontmatter = frontmatterMatch[1];
-        const lines = frontmatter.split("\n").filter((line: string) => line.trim());
+        const lines = frontmatter
+          .split("\n")
+          .filter((line: string) => line.trim());
 
         // Required fields should be first
         expect(lines[0]).toContain("id:");

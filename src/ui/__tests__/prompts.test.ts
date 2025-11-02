@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import inquirer from "inquirer";
 import {
-  createMinificationPrompt,
   createMinificationModePrompt,
   createFieldSelectionPrompt,
 } from "../prompts";
@@ -13,91 +12,6 @@ const mockInquirer = vi.mocked(inquirer);
 describe("Minification prompts", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  describe("createMinificationPrompt", () => {
-    it("should return true when user selects to minify", async () => {
-      // Use 'mockImplementation' to only override prompt and avoid type error
-      mockInquirer.prompt.mockImplementation(() =>
-        Promise.resolve({ minify: true })
-      );
-
-      const result = await createMinificationPrompt();
-
-      expect(result).toBe(true);
-      expect(mockInquirer.prompt).toHaveBeenCalledTimes(1);
-    });
-
-    it("should return false when user does not want to minify", async () => {
-      mockInquirer.prompt.mockImplementation(() =>
-        Promise.resolve({ minify: false })
-      );
-
-      const result = await createMinificationPrompt();
-
-      expect(result).toBe(false);
-      expect(mockInquirer.prompt).toHaveBeenCalledTimes(1);
-    });
-
-    it("should return 'minimal' when selected", async () => {
-      mockInquirer.prompt.mockImplementation(() =>
-        Promise.resolve({ mode: "minimal" })
-      );
-
-      const result = await createMinificationModePrompt();
-
-      expect(result).toBe("minimal");
-      expect(mockInquirer.prompt).toHaveBeenCalledTimes(1);
-    });
-
-    it("should return 'recommended' when selected", async () => {
-      mockInquirer.prompt.mockImplementation(() =>
-        Promise.resolve({ mode: "recommended" })
-      );
-
-      const result = await createMinificationModePrompt();
-
-      expect(result).toBe("recommended");
-      expect(mockInquirer.prompt).toHaveBeenCalledTimes(1);
-    });
-
-    it("should return 'select' when selected", async () => {
-      mockInquirer.prompt.mockImplementation(() =>
-        Promise.resolve({ mode: "select" })
-      );
-
-      const result = await createMinificationModePrompt();
-
-      expect(result).toBe("select");
-      expect(mockInquirer.prompt).toHaveBeenCalledTimes(1);
-    });
-
-    it("should have all three mode options", async () => {
-      mockInquirer.prompt.mockImplementation(() =>
-        Promise.resolve({ mode: "recommended" })
-      );
-
-      await createMinificationModePrompt();
-
-      expect(mockInquirer.prompt).toHaveBeenCalledTimes(1);
-    });
-
-    it("should use correct prompt configuration", async () => {
-      // Use mockImplementation to override only the prompt method, in order to avoid type errors
-      mockInquirer.prompt.mockImplementation(() =>
-        Promise.resolve({ minify: true })
-      );
-
-      await createMinificationPrompt();
-
-      const callArgs = mockInquirer.prompt.mock.calls[0];
-      expect(callArgs?.[0]).toHaveLength(1);
-      const promptConfig = callArgs?.[0]?.[0];
-      expect(promptConfig?.type).toBe("confirm");
-      expect(promptConfig?.name).toBe("minify");
-      expect(promptConfig?.default).toBe(false);
-      expect(promptConfig?.message).toContain("minify");
-    });
   });
 
   describe("createMinificationModePrompt", () => {
@@ -120,6 +34,7 @@ describe("Minification prompts", () => {
       const result = await createMinificationModePrompt();
 
       expect(result).toBe("recommended");
+      expect(mockInquirer.prompt).toHaveBeenCalledTimes(1);
     });
 
     it("should return 'select' when selected", async () => {
@@ -130,9 +45,21 @@ describe("Minification prompts", () => {
       const result = await createMinificationModePrompt();
 
       expect(result).toBe("select");
+      expect(mockInquirer.prompt).toHaveBeenCalledTimes(1);
     });
 
-    it("should have all three mode options", async () => {
+    it("should return 'all' when selected", async () => {
+      mockInquirer.prompt.mockImplementation(() =>
+        Promise.resolve({ mode: "all" })
+      );
+
+      const result = await createMinificationModePrompt();
+
+      expect(result).toBe("all");
+      expect(mockInquirer.prompt).toHaveBeenCalledTimes(1);
+    });
+
+    it("should have all four mode options", async () => {
       mockInquirer.prompt.mockImplementation(() =>
         Promise.resolve({ mode: "recommended" })
       );
@@ -143,7 +70,7 @@ describe("Minification prompts", () => {
       const promptConfig = callArgs?.[0]?.[0];
       expect(promptConfig?.type).toBe("list");
       expect(promptConfig?.name).toBe("mode");
-      expect(promptConfig?.choices).toHaveLength(3);
+      expect(promptConfig?.choices).toHaveLength(4);
       expect(promptConfig?.default).toBe("recommended");
 
       const choices = promptConfig?.choices as Array<{
@@ -154,6 +81,7 @@ describe("Minification prompts", () => {
       expect(values).toContain("minimal");
       expect(values).toContain("recommended");
       expect(values).toContain("select");
+      expect(values).toContain("all");
     });
 
     it("should have descriptive choice names", async () => {
@@ -177,10 +105,17 @@ describe("Minification prompts", () => {
       const recommendedChoice = choices?.find((c) => c.value === "recommended");
       expect(recommendedChoice?.name).toContain("Recommended");
       expect(recommendedChoice?.name).toContain("Cursor AI");
+      expect(recommendedChoice?.name).toContain("default");
+      expect(recommendedChoice?.name).toContain("minifies");
 
       const selectionChoice = choices?.find((c) => c.value === "select");
       expect(selectionChoice?.name).toContain("Select");
       expect(selectionChoice?.name).toContain("Custom");
+
+      const allChoice = choices?.find((c) => c.value === "all");
+      expect(allChoice?.name).toContain("All");
+      expect(allChoice?.name).toContain("all metadata");
+      expect(allChoice?.name).toContain("no minification");
     });
   });
 

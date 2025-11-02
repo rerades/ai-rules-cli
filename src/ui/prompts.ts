@@ -343,19 +343,23 @@ export const createMinificationModePrompt =
       {
         type: "list",
         name: "mode",
-        message: "Select minification mode:",
+        message: "Select metadata mode (default: Recommended - minifies with recommended fields):",
         choices: [
           {
             name: "Minimal - Only essential fields (id, version, title, category)",
             value: "minimal",
           },
           {
-            name: "Recommended - Recommended fields for Cursor AI",
+            name: "Recommended - Recommended fields for Cursor AI (default, minifies)",
             value: "recommended",
           },
           {
             name: "Select - Custom field selection",
             value: "select",
+          },
+          {
+            name: "All - Keep all metadata fields (no minification)",
+            value: "all",
           },
         ],
         default: "recommended",

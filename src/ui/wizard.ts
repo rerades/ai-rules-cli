@@ -36,7 +36,6 @@ import {
   createReviewPrompt,
   createConflictResolutionPrompt,
   createGenerationConfirmationPrompt,
-  createMinificationPrompt,
   createMinificationModePrompt,
   createFieldSelectionPrompt,
 } from "./prompts";
@@ -117,35 +116,35 @@ export const runWizard = async (
     // Output path selection
     const outputPath = await createOutputPathPrompt();
 
-    // Minification configuration
-    const wantsMinify = await createMinificationPrompt();
+    // Minification configuration - default to recommended mode
+    const minificationMode = await createMinificationModePrompt();
     let normalizeOptions: NormalizeOptions = { minify: false };
 
-    if (wantsMinify) {
-      const minificationMode = await createMinificationModePrompt();
-
-      switch (minificationMode) {
-        case "minimal":
-          normalizeOptions = { minify: true, keepFields: [] };
-          break;
-        case "recommended":
-          normalizeOptions = {
-            minify: true,
-            keepFields: RECOMMENDED_FIELDS,
-          };
-          break;
-        case "select": {
-          const availableFields = getAvailableMetadataFields();
-          const selectedFields = await createFieldSelectionPrompt(
-            availableFields
-          );
-          normalizeOptions = {
-            minify: true,
-            keepFields: selectedFields,
-          };
-          break;
-        }
+    switch (minificationMode) {
+      case "minimal":
+        normalizeOptions = { minify: true, keepFields: [] };
+        break;
+      case "recommended":
+        normalizeOptions = {
+          minify: true,
+          keepFields: RECOMMENDED_FIELDS,
+        };
+        break;
+      case "select": {
+        const availableFields = getAvailableMetadataFields();
+        const selectedFields = await createFieldSelectionPrompt(
+          availableFields
+        );
+        normalizeOptions = {
+          minify: true,
+          keepFields: selectedFields,
+        };
+        break;
       }
+      case "all":
+        // Keep all metadata fields (no minification)
+        normalizeOptions = { minify: false };
+        break;
     }
 
     // Resolve dependencies and conflicts

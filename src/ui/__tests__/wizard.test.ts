@@ -100,9 +100,6 @@ vi.mock("../../generators/index-generator", () => ({
 import * as promptsModule from "../prompts";
 import * as outputGeneratorModule from "../../generators/output-generator";
 
-const mockCreateMinificationPrompt = vi.mocked(
-  promptsModule.createMinificationPrompt
-);
 const mockCreateMinificationModePrompt = vi.mocked(
   promptsModule.createMinificationModePrompt
 );
@@ -132,23 +129,20 @@ describe("wizard minification integration", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset default mocks
-    mockCreateMinificationPrompt.mockResolvedValue(false);
+    // Default to recommended mode (the default choice)
+    mockCreateMinificationModePrompt.mockResolvedValue("recommended");
   });
 
-  it("should pass normalizeOptions with minify: false when user does not want to minify", async () => {
-    mockCreateMinificationPrompt.mockResolvedValue(false);
+  it("should always call minification mode prompt", async () => {
+    mockCreateMinificationModePrompt.mockResolvedValue("recommended");
 
     await runWizard(mockConfig);
 
+    expect(mockCreateMinificationModePrompt).toHaveBeenCalledTimes(1);
     expect(mockGenerateRuleFiles).toHaveBeenCalledTimes(1);
-    const callArgs = mockGenerateRuleFiles.mock.calls[0];
-    const normalizeOptions = callArgs?.[5];
-    expect(normalizeOptions).toEqual({ minify: false });
   });
 
   it("should pass normalizeOptions with minimal mode", async () => {
-    mockCreateMinificationPrompt.mockResolvedValue(true);
     mockCreateMinificationModePrompt.mockResolvedValue("minimal");
 
     await runWizard(mockConfig);
@@ -163,8 +157,7 @@ describe("wizard minification integration", () => {
     });
   });
 
-  it("should pass normalizeOptions with recommended mode", async () => {
-    mockCreateMinificationPrompt.mockResolvedValue(true);
+  it("should pass normalizeOptions with recommended mode (default)", async () => {
     mockCreateMinificationModePrompt.mockResolvedValue("recommended");
 
     await runWizard(mockConfig);
@@ -184,7 +177,6 @@ describe("wizard minification integration", () => {
     const selectedFields = ["description", "scope", "tags"];
     const availableFields = getAvailableMetadataFields();
 
-    mockCreateMinificationPrompt.mockResolvedValue(true);
     mockCreateMinificationModePrompt.mockResolvedValue("select");
     mockCreateFieldSelectionPrompt.mockResolvedValue(selectedFields);
 
@@ -204,25 +196,31 @@ describe("wizard minification integration", () => {
     });
   });
 
-  it("should not call minification mode prompt when user does not want to minify", async () => {
-    mockCreateMinificationPrompt.mockResolvedValue(false);
+  it("should pass normalizeOptions with all mode (no minification)", async () => {
+    mockCreateMinificationModePrompt.mockResolvedValue("all");
 
     await runWizard(mockConfig);
 
-    expect(mockCreateMinificationModePrompt).not.toHaveBeenCalled();
+    expect(mockCreateMinificationModePrompt).toHaveBeenCalledTimes(1);
     expect(mockCreateFieldSelectionPrompt).not.toHaveBeenCalled();
+    expect(mockGenerateRuleFiles).toHaveBeenCalledTimes(1);
+    const callArgs = mockGenerateRuleFiles.mock.calls[0];
+    const normalizeOptions = callArgs?.[5];
+    expect(normalizeOptions).toEqual({
+      minify: false,
+    });
   });
 
-  it("should handle all three minification modes correctly", async () => {
-    const modes: Array<"minimal" | "recommended" | "select"> = [
+  it("should handle all four minification modes correctly", async () => {
+    const modes: Array<"minimal" | "recommended" | "select" | "all"> = [
       "minimal",
       "recommended",
       "select",
+      "all",
     ];
 
     for (const mode of modes) {
       vi.clearAllMocks();
-      mockCreateMinificationPrompt.mockResolvedValue(true);
       mockCreateMinificationModePrompt.mockResolvedValue(mode);
 
       if (mode === "select") {
@@ -257,6 +255,11 @@ describe("wizard minification integration", () => {
           expect(normalizeOptions).toEqual({
             minify: true,
             keepFields: ["description", "scope"],
+          });
+          break;
+        case "all":
+          expect(normalizeOptions).toEqual({
+            minify: false,
           });
           break;
       }

@@ -11,7 +11,7 @@ export type NormalizeOptions = {
   readonly keepFields?: readonly string[];
 };
 
-export type MinificationMode = "minimal" | "recommended" | "select";
+export type MinificationMode = "minimal" | "recommended" | "select" | "all";
 
 /**
  * Recommended fields for Cursor AI to understand and follow rules effectively.
